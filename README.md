@@ -25,12 +25,12 @@ CDN or local files:
 npm:
 
 ```bash
-npm install @rexxhayanasi/cursanimation
+npm install @rexxzyid/cursanimation
 ```
 
 ```javascript
-import CursAnimation from "@rexxhayanasi/cursanimation";
-import "@rexxhayanasi/cursanimation/css";
+import CursAnimation from "@rexxzyid/cursanimation";
+import "@rexxzyid/cursanimation/css";
 
 CursAnimation.init({ cursor: "ring", movement: "elastic", magnetic: true });
 ```

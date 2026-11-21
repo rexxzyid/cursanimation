@@ -61,7 +61,7 @@ for (const file of ["cursanimation.js", "cursanimation.min.js"]) {
 }
 
 test("ES module build resolves through the package exports", async () => {
-  const module = await import("@rexxhayanasi/cursanimation");
+  const module = await import("@rexxzyid/cursanimation");
   assert.equal(module.version, pkg.version);
   assert.equal(module.default.version, pkg.version);
   assert.equal(typeof module.init, "function");
@@ -69,13 +69,13 @@ test("ES module build resolves through the package exports", async () => {
 });
 
 test("CommonJS build resolves through the package exports", () => {
-  const api = require("@rexxhayanasi/cursanimation");
+  const api = require("@rexxzyid/cursanimation");
   assert.equal(api.version, pkg.version);
   assert.equal(typeof api.init, "function");
 });
 
 test("server-side rendering is a safe no-op", async () => {
-  const module = await import("@rexxhayanasi/cursanimation");
+  const module = await import("@rexxzyid/cursanimation");
   assert.equal(typeof window, "undefined");
   module.init({ trail: true });
   module.setCursor("dot");
