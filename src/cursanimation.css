@@ -352,3 +352,28 @@ html.ca-hide-native * {
     transition: none !important;
   }
 }
+
+.ca-swarm {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ca-swarm-item {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+
+.ca-swarm-item svg {
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.28));
+}
+
+.ca-root[data-ca-swarm-hide="true"] .ca-head,
+.ca-root[data-ca-swarm-hide="true"] .ca-body {
+  opacity: 0;
+}

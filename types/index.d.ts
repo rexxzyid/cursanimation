@@ -24,6 +24,16 @@ export interface MagneticOptions {
   strength: number;
 }
 
+export interface SwarmOptions {
+  enabled: boolean;
+  count: number;
+  radius: number;
+  size: number;
+  speed: number;
+  avoid: number;
+  hideCursor: boolean;
+}
+
 export interface TrailOptions {
   enabled: boolean;
   length: number;
@@ -67,6 +77,7 @@ export interface CursAnimationOptions {
   speed: number;
   elastic: ElasticOptions;
   magnetic: MagneticOptions;
+  swarm: SwarmOptions;
   glow: boolean;
   neon: boolean;
   motionBlur: boolean;
@@ -95,6 +106,7 @@ export interface CursAnimationInput {
   speed?: number;
   elastic?: Partial<ElasticOptions>;
   magnetic?: boolean | Partial<MagneticOptions>;
+  swarm?: boolean | Partial<SwarmOptions>;
   glow?: boolean;
   neon?: boolean;
   motionBlur?: boolean;

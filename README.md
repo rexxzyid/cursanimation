@@ -70,6 +70,7 @@ Invalid or unknown options throw `RangeError` or `TypeError` instead of being ig
 | `speed` | `0.25` | `0.02` to `1`, follow factor per frame |
 | `elastic` | `{ stiffness: 0.12, damping: 0.78 }` | Spring parameters for `elastic` |
 | `magnetic` | `{ enabled: false, radius: 90, strength: 0.4 }` | Pulls toward nearby links and buttons |
+| `swarm` | `{ enabled: false, count: 18, radius: 150, size: 26, speed: 1, avoid: 52, hideCursor: true }` | A flock of coloured multiplayer cursors that orbit and trail the pointer |
 | `glow` / `neon` / `motionBlur` | `false` | Visual effects |
 | `trail` | `{ enabled: false, length: 14, style: "dots", size: 0.6 }` | `style`: `dots`, `gradient`, `neon` |
 | `particles` | `{ enabled: false, density: 4, size: 6, lifetime: 800, gravity: 0.04, shape: "dot", max: 120 }` | `shape`: `dot`, `sparkle`, `mixed` |
@@ -81,11 +82,30 @@ Invalid or unknown options throw `RangeError` or `TypeError` instead of being ig
 | `respectReducedMotion` | `true` | Disables trail, particles, ripples, blur and easing |
 | `selectors` | see source | `link`, `button`, `text`, `ignore` |
 
-Passing `true` for `trail`, `particles`, `clickEffects` or `magnetic` enables them with defaults. Passing an object enables them and overrides the given keys.
+Passing `true` for `trail`, `particles`, `clickEffects`, `magnetic` or `swarm` enables them with defaults. Passing an object enables them and overrides the given keys.
 
 `particles` controls ambient trail particles and the shared particle look. Click particles are controlled by `clickEffects.particles`.
 
 Per-element control: `data-ca-hover="link|button|text|none"` forces a hover state, `data-ca-ignore` opts an element out, `data-ca-magnetic` makes any element a magnetic target.
+
+## Swarm
+
+Turns the pointer into a flock of coloured multiplayer-style cursors that orbit, swirl and avoid the pointer, like the cursors on [Swarm](https://califa.github.io/swarm-site/).
+
+```javascript
+CursAnimation.init({
+  cursor: "ring",
+  swarm: {
+    enabled: true,
+    count: 24,
+    radius: 160,
+    avoid: 56,
+    hideCursor: true
+  }
+});
+```
+
+`count` is the number of cursors (2–64), `radius` the orbit distance, `speed` the overall animation speed, `avoid` the empty ring kept around the pointer, and `hideCursor` hides the single custom cursor while the swarm is active. The swarm is disabled when reduced motion is preferred.
 
 ## Scroll reveal
 

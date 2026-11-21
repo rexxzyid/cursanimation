@@ -1,4 +1,4 @@
-/*! CursAnimation v1.0.0 | MIT | RexxHayanasi | https://cursanimation.rexxhayanasi.cv */
+/*! CursAnimation v1.1.0 | MIT | RexxHayanasi | https://cursanimation.rexxhayanasi.cv */
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -62,6 +62,7 @@ var DEFAULTS = {
   speed: 0.25,
   elastic: { stiffness: 0.12, damping: 0.78 },
   magnetic: { enabled: false, radius: 90, strength: 0.4 },
+  swarm: { enabled: false, count: 18, radius: 150, size: 26, speed: 1, avoid: 52, hideCursor: true },
   glow: false,
   neon: false,
   motionBlur: false,
@@ -90,7 +91,7 @@ var DEFAULTS = {
     ignore: "[data-ca-ignore]"
   }
 };
-var TOGGLED = ["trail", "particles", "clickEffects", "magnetic"];
+var TOGGLED = ["trail", "particles", "clickEffects", "magnetic", "swarm"];
 var NESTED = ["elastic", "selectors", ...TOGGLED];
 var isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 function oneOf(name, value, list) {
@@ -132,6 +133,12 @@ function validate(config) {
   c.elastic.damping = bounded("elastic.damping", c.elastic.damping, 0.3, 0.98);
   c.magnetic.radius = bounded("magnetic.radius", c.magnetic.radius, 10, 400);
   c.magnetic.strength = bounded("magnetic.strength", c.magnetic.strength, 0, 1);
+  c.swarm.count = Math.round(bounded("swarm.count", c.swarm.count, 2, 64));
+  c.swarm.radius = bounded("swarm.radius", c.swarm.radius, 40, 500);
+  c.swarm.size = bounded("swarm.size", c.swarm.size, 10, 64);
+  c.swarm.speed = bounded("swarm.speed", c.swarm.speed, 0.2, 3);
+  c.swarm.avoid = bounded("swarm.avoid", c.swarm.avoid, 0, 200);
+  flag("swarm.hideCursor", c.swarm.hideCursor);
   c.trail.length = Math.round(bounded("trail.length", c.trail.length, 2, 40));
   c.trail.size = bounded("trail.size", c.trail.size, 0.1, 2);
   c.particles.density = bounded("particles.density", c.particles.density, 1, 10);
@@ -190,7 +197,8 @@ function effectiveConfig(config, reducedMotion) {
     trail: { ...config.trail, enabled: false },
     particles: { ...config.particles, enabled: false },
     clickEffects: { ...config.clickEffects, ripple: false, particles: false },
-    magnetic: { ...config.magnetic, enabled: false }
+    magnetic: { ...config.magnetic, enabled: false },
+    swarm: { ...config.swarm, enabled: false }
   };
 }
 
@@ -743,6 +751,188 @@ var Particles = class {
   }
 };
 
+// src/swarm.js
+var SVGNS = "http://www.w3.org/2000/svg";
+var COLORS = [
+  "#F24E1E",
+  "#A259FF",
+  "#1ABCFE",
+  "#0ACF83",
+  "#FF7262",
+  "#FFC700",
+  "#9747FF",
+  "#E8467C",
+  "#14AE5C",
+  "#0D99FF",
+  "#FF8A00",
+  "#00B5CE"
+];
+var ARROW_D = "M4.6 3.9 C4.2 3.1 4.9 2.4 5.7 2.8 L20.6 9.4 C21.5 9.8 21.4 11.1 20.4 11.3 L13.9 12.9 C13.4 13 13 13.4 12.9 13.9 L11.3 20.4 C11.1 21.4 9.8 21.5 9.4 20.6 Z";
+var HOT = { arrow: [5, 3.5], cross: [12, 12], pen: [3, 3], ibeam: [12, 12] };
+var rand = (a, b) => a + Math.random() * (b - a);
+var clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function shapeSVG(shape, color) {
+  const stroke = 'stroke="#fff" stroke-width="1.5" stroke-linejoin="round"';
+  switch (shape) {
+    case "cross":
+      return `<g stroke-linecap="round"><path d="M12 3.5 V20.5 M3.5 12 H20.5" stroke="#fff" stroke-width="3.6"/><path d="M12 3.5 V20.5 M3.5 12 H20.5" stroke="${color}" stroke-width="1.5"/></g>`;
+    case "pen":
+      return `<path d="M17.4 10.6 L20.6 13.8 L13.8 20.6 L10.6 17.4 Z" fill="${color}" ${stroke}/><path d="M3 3 L13.1 6.3 L17.4 10.6 L10.6 17.4 L6.3 13.1 Z" fill="${color}" ${stroke}/><path d="M3.6 3.6 L8.9 8.9" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/><circle cx="10.2" cy="10.2" r="1.75" fill="none" stroke="#fff" stroke-width="1.2"/>`;
+    case "ibeam":
+      return `<g fill="none" stroke-linecap="round"><path d="M8.5 4.5 H10.5 Q12 4.5 12 6 Q12 4.5 13.5 4.5 H15.5 M12 6 V18 M8.5 19.5 H10.5 Q12 19.5 12 18 Q12 19.5 13.5 19.5 H15.5" stroke="#fff" stroke-width="3.6"/><path d="M8.5 4.5 H10.5 Q12 4.5 12 6 Q12 4.5 13.5 4.5 H15.5 M12 6 V18 M8.5 19.5 H10.5 Q12 19.5 12 18 Q12 19.5 13.5 19.5 H15.5" stroke="${color}" stroke-width="1.5"/></g>`;
+    default:
+      return `<path d="${ARROW_D}" fill="${color}" ${stroke}/>`;
+  }
+}
+var Swarm = class {
+  constructor(root) {
+    this.layer = createElement("div", "ca-swarm", root);
+    this.items = [];
+    this.time = 0;
+    this.config = null;
+  }
+  configure(config) {
+    this.config = config.swarm;
+    if (!this.config.enabled) this.clear();
+  }
+  make(x, y, index) {
+    const color = COLORS[index % COLORS.length];
+    const shape = index % 7 === 0 ? "cross" : index % 11 === 0 ? "pen" : index % 5 === 0 ? "ibeam" : "arrow";
+    const element = createElement("div", "ca-swarm-item", this.layer);
+    const svg = document.createElementNS(SVGNS, "svg");
+    svg.setAttribute("width", "28");
+    svg.setAttribute("height", "28");
+    svg.setAttribute("viewBox", "0 0 28 28");
+    svg.innerHTML = shapeSVG(shape, color);
+    const [hx, hy] = HOT[shape];
+    svg.style.transform = `translate(${-hx}px,${-hy}px)`;
+    element.appendChild(svg);
+    const fast = Math.random() < 0.25;
+    return {
+      element,
+      x,
+      y,
+      vx: 0,
+      vy: 0,
+      color,
+      speed: fast ? rand(1e3, 1500) : rand(320, 760),
+      force: fast ? rand(3500, 6e3) : rand(750, 1800),
+      spin: fast ? rand(2.2, 3.4) : rand(0.8, 1.8),
+      curl: rand(-1, 1),
+      orbit: rand(70, 170)
+    };
+  }
+  resize(size, x, y) {
+    const count = Math.round(size.count);
+    while (this.items.length < count) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.max(40, size.radius * (0.55 + Math.random() * 0.5));
+      this.items.push(this.make(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius, this.items.length));
+    }
+    while (this.items.length > count) {
+      const item = this.items.pop();
+      item.element.remove();
+    }
+  }
+  update(px, py, frames, config) {
+    const size = config.swarm;
+    const dt = Math.min(0.064, Math.max(1e-3, frames * 0.016667));
+    this.time += dt * size.speed;
+    this.resize(size, px, py);
+    const list = this.items;
+    const time = this.time;
+    const R = size.radius * (1 + 0.18 * Math.sin(time * 0.55));
+    const swirl = Math.tanh(Math.cos(time * 0.11) * 3);
+    const want = [];
+    for (let index = 0; index < list.length; index++) {
+      const c = list[index];
+      const dx = c.x - px;
+      const dy = c.y - py;
+      const d = Math.hypot(dx, dy) || 0.01;
+      const nx = dx / d;
+      const ny = dy / d;
+      const ang = Math.atan2(dy, dx);
+      const off = (c.orbit - 120) * 0.55;
+      const rr = R * (1 + 0.3 * Math.sin(3 * ang + time * 0.7)) + off;
+      const tang = 300 * (0.7 + c.spin * 0.2) * swirl;
+      const rad = clamp((rr - d) * 4, -2600, 1400);
+      const far = Math.min(1, Math.max(0, (d - rr) / 600));
+      want.push([-ny * tang + nx * rad - ny * c.curl * 400 * far, nx * tang + ny * rad + nx * c.curl * 400 * far]);
+    }
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i];
+      let ax = 0;
+      let ay = 0;
+      let weight = 0;
+      for (let j = 0; j < list.length; j++) {
+        if (j === i) continue;
+        const other = list[j];
+        const d = Math.hypot(other.x - c.x, other.y - c.y);
+        if (d > 90) continue;
+        const w = 1 - d / 90;
+        ax += other.vx * w;
+        ay += other.vy * w;
+        weight += w;
+      }
+      let [fx, fy] = want[i];
+      if (weight > 0) {
+        fx = fx * 0.7 + ax / weight * 0.3;
+        fy = fy * 0.7 + ay / weight * 0.3;
+      }
+      const dist = Math.max(0, Math.hypot(c.x - px, c.y - py) - 180);
+      const maxV = c.speed * (1.3 + Math.min(3.2, dist / 90));
+      const speed = Math.hypot(fx, fy);
+      if (speed > maxV) {
+        fx *= maxV / speed;
+        fy *= maxV / speed;
+      }
+      let gx = (fx - c.vx) * 6;
+      let gy = (fy - c.vy) * 6;
+      const maxF = c.force * (1.4 + Math.min(5, dist / 50));
+      const force = Math.hypot(gx, gy);
+      if (force > maxF) {
+        gx *= maxF / force;
+        gy *= maxF / force;
+      }
+      c.vx += gx * dt;
+      c.vy += gy * dt;
+      c.x += c.vx * dt;
+      c.y += c.vy * dt;
+    }
+    const avoid = size.avoid;
+    for (const c of list) {
+      const dx = c.x - px;
+      const dy = c.y - py;
+      const d = Math.hypot(dx, dy) || 0.01;
+      if (d >= avoid) continue;
+      const nx = dx / d;
+      const ny = dy / d;
+      c.x = px + nx * avoid;
+      c.y = py + ny * avoid;
+      const rel = c.vx * nx + c.vy * ny;
+      if (rel < 0) {
+        c.vx -= nx * rel * 1.6;
+        c.vy -= ny * rel * 1.6;
+      }
+      c.vx += nx * 260;
+      c.vy += ny * 260;
+    }
+    for (const c of list) {
+      c.element.style.transform = `translate3d(${Math.round(c.x * 10) / 10}px,${Math.round(c.y * 10) / 10}px,0)`;
+    }
+    return true;
+  }
+  clear() {
+    for (const item of this.items) item.element.remove();
+    this.items = [];
+    this.time = 0;
+  }
+  destroy() {
+    this.clear();
+    this.layer.remove();
+  }
+};
+
 // src/engine.js
 var NATIVE_CLASS = "ca-hide-native";
 var MOVING_WINDOW_MS = 140;
@@ -811,7 +1001,8 @@ var Engine = class {
     this.parts = {
       trail: new Trail(root),
       fx: new Particles(root),
-      cursor: new Cursor(root)
+      cursor: new Cursor(root),
+      swarm: new Swarm(root)
     };
     this.releaseMedia = watchMedia("(prefers-reduced-motion: reduce)", () => this.apply());
     this.apply();
@@ -839,6 +1030,9 @@ var Engine = class {
     this.parts.cursor.configure(eff);
     this.parts.trail.configure(eff);
     this.parts.fx.configure(eff);
+    this.parts.swarm.configure(eff);
+    root.setAttribute("data-ca-swarm", String(eff.swarm.enabled));
+    root.setAttribute("data-ca-swarm-hide", String(eff.swarm.enabled && eff.swarm.hideCursor));
     this.rectsDirty = true;
     this.syncNative();
     this.syncState();
@@ -916,6 +1110,7 @@ var Engine = class {
       this.parts.cursor.destroy();
       this.parts.trail.destroy();
       this.parts.fx.destroy();
+      this.parts.swarm.destroy();
       this.parts = null;
     }
     if (this.root) this.root.remove();
@@ -1108,6 +1303,10 @@ var Engine = class {
     let active = false;
     if (pointer.has) {
       active = cursor.update(pointer.x, pointer.y, this.pullX, this.pullY, frames, eff);
+      if (eff.swarm.enabled) {
+        this.parts.swarm.update(pointer.x, pointer.y, frames, eff);
+        active = true;
+      }
     }
     const trailActive = this.parts.trail.update(cursor.sourceX, cursor.sourceY, moving && pointer.has, frames);
     if (eff.particles.enabled && moving && pointer.has) {
@@ -1269,7 +1468,7 @@ var Reveal = class {
 };
 
 // src/version.js
-var version = "1.0.0";
+var version = "1.1.0";
 
 // src/index.js
 var engine = new Engine();

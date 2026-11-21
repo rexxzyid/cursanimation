@@ -6,6 +6,7 @@ import { bindInput } from "./input.js";
 import { Cursor } from "./cursor.js";
 import { Trail } from "./trail.js";
 import { Particles } from "./particles.js";
+import { Swarm } from "./swarm.js";
 
 const NATIVE_CLASS = "ca-hide-native";
 const MOVING_WINDOW_MS = 140;
@@ -79,6 +80,7 @@ export class Engine {
       trail: new Trail(root),
       fx: new Particles(root),
       cursor: new Cursor(root),
+      swarm: new Swarm(root),
     };
     this.releaseMedia = watchMedia("(prefers-reduced-motion: reduce)", () => this.apply());
     this.apply();
@@ -107,6 +109,9 @@ export class Engine {
     this.parts.cursor.configure(eff);
     this.parts.trail.configure(eff);
     this.parts.fx.configure(eff);
+    this.parts.swarm.configure(eff);
+    root.setAttribute("data-ca-swarm", String(eff.swarm.enabled));
+    root.setAttribute("data-ca-swarm-hide", String(eff.swarm.enabled && eff.swarm.hideCursor));
     this.rectsDirty = true;
     this.syncNative();
     this.syncState();
@@ -191,6 +196,7 @@ export class Engine {
       this.parts.cursor.destroy();
       this.parts.trail.destroy();
       this.parts.fx.destroy();
+      this.parts.swarm.destroy();
       this.parts = null;
     }
     if (this.root) this.root.remove();
@@ -397,6 +403,10 @@ export class Engine {
     let active = false;
     if (pointer.has) {
       active = cursor.update(pointer.x, pointer.y, this.pullX, this.pullY, frames, eff);
+      if (eff.swarm.enabled) {
+        this.parts.swarm.update(pointer.x, pointer.y, frames, eff);
+        active = true;
+      }
     }
     const trailActive = this.parts.trail.update(cursor.sourceX, cursor.sourceY, moving && pointer.has, frames);
     if (eff.particles.enabled && moving && pointer.has) {

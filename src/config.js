@@ -26,6 +26,7 @@ export const DEFAULTS = {
   speed: 0.25,
   elastic: { stiffness: 0.12, damping: 0.78 },
   magnetic: { enabled: false, radius: 90, strength: 0.4 },
+  swarm: { enabled: false, count: 18, radius: 150, size: 26, speed: 1, avoid: 52, hideCursor: true },
   glow: false,
   neon: false,
   motionBlur: false,
@@ -55,7 +56,7 @@ export const DEFAULTS = {
   },
 };
 
-const TOGGLED = ["trail", "particles", "clickEffects", "magnetic"];
+const TOGGLED = ["trail", "particles", "clickEffects", "magnetic", "swarm"];
 const NESTED = ["elastic", "selectors", ...TOGGLED];
 
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -103,6 +104,12 @@ function validate(config) {
   c.elastic.damping = bounded("elastic.damping", c.elastic.damping, 0.3, 0.98);
   c.magnetic.radius = bounded("magnetic.radius", c.magnetic.radius, 10, 400);
   c.magnetic.strength = bounded("magnetic.strength", c.magnetic.strength, 0, 1);
+  c.swarm.count = Math.round(bounded("swarm.count", c.swarm.count, 2, 64));
+  c.swarm.radius = bounded("swarm.radius", c.swarm.radius, 40, 500);
+  c.swarm.size = bounded("swarm.size", c.swarm.size, 10, 64);
+  c.swarm.speed = bounded("swarm.speed", c.swarm.speed, 0.2, 3);
+  c.swarm.avoid = bounded("swarm.avoid", c.swarm.avoid, 0, 200);
+  flag("swarm.hideCursor", c.swarm.hideCursor);
   c.trail.length = Math.round(bounded("trail.length", c.trail.length, 2, 40));
   c.trail.size = bounded("trail.size", c.trail.size, 0.1, 2);
   c.particles.density = bounded("particles.density", c.particles.density, 1, 10);
@@ -169,5 +176,6 @@ export function effectiveConfig(config, reducedMotion) {
     particles: { ...config.particles, enabled: false },
     clickEffects: { ...config.clickEffects, ripple: false, particles: false },
     magnetic: { ...config.magnetic, enabled: false },
+    swarm: { ...config.swarm, enabled: false },
   };
 }
