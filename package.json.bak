@@ -1,0 +1,69 @@
+{
+  "name": "@rexxhayanasi/cursanimation",
+  "version": "1.0.0",
+  "description": "Dependency-free custom cursor animation library: cursor styles, trails, particles, magnetic hover, click effects and scroll reveal.",
+  "author": "RexxHayanasi",
+  "license": "MIT",
+  "homepage": "https://cursanimation.rexxhayanasi.cv",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "./dist/cursanimation.cjs",
+  "module": "./dist/cursanimation.esm.js",
+  "unpkg": "./dist/cursanimation.min.js",
+  "jsdelivr": "./dist/cursanimation.min.js",
+  "style": "./dist/cursanimation.min.css",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "import": "./dist/cursanimation.esm.js",
+      "require": "./dist/cursanimation.cjs",
+      "default": "./dist/cursanimation.esm.js"
+    },
+    "./css": "./dist/cursanimation.css",
+    "./css/min": "./dist/cursanimation.min.css",
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "types",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "cursor",
+    "custom-cursor",
+    "mouse",
+    "animation",
+    "trail",
+    "particles",
+    "scroll-reveal",
+    "magnetic",
+    "vanilla-js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rexxhayanasi/cursanimation.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rexxhayanasi/cursanimation/issues"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:dev": "node scripts/build.mjs --dev",
+    "test": "node --test tests/*.test.js",
+    "check:comments": "node scripts/check-comments.mjs",
+    "prepublishOnly": "npm run check:comments && npm run build && npm test"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "jsdom": "^26.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
