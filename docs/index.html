@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dokumentasi lengkap CursAnimation: custom cursor, swarm, trail, particles, dan animasi rebuild on scroll. Panduan instalasi dan implementasi.">
+  <meta name="theme-color" content="#08080c">
+  <title>CursAnimation — Dokumentasi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rexxzyid/cursanimation@1.5.4/dist/cursanimation.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Lewati ke konten</a>
+
+  <header class="topbar">
+    <a class="logo" href="#intro">CA<span>.</span></a>
+    <div class="topbar-meta">
+      <span class="pill">v1.5.4</span>
+      <a class="ghost" href="https://github.com/rexxzyid/cursanimation" target="_blank" rel="noreferrer">GitHub ↗</a>
+    </div>
+    <button class="menu" type="button" aria-label="Buka daftar isi" aria-expanded="false">Daftar isi</button>
+  </header>
+
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <nav aria-label="Daftar isi">
+        <p class="nav-label">Mulai</p>
+        <a href="#intro">Pengenalan</a>
+        <a href="#install">Instalasi</a>
+        <a href="#quickstart">Mulai cepat</a>
+
+        <p class="nav-label">Kursor</p>
+        <a href="#options">Opsi kursor</a>
+        <a href="#types">Tipe kursor</a>
+        <a href="#effects">Efek</a>
+
+        <p class="nav-label">Animasi scroll</p>
+        <a href="#reveal">Reveal</a>
+        <a href="#rebuild">Rebuild on scroll</a>
+        <a href="#demo">Live demo</a>
+
+        <p class="nav-label">Referensi</p>
+        <a href="#api">API</a>
+        <a href="#attributes">Atribut data</a>
+        <a href="#performance">Performa</a>
+        <a href="#troubleshooting">Troubleshooting</a>
+        <a href="#support">Browser & lisensi</a>
+      </nav>
+    </aside>
+
+    <main id="main">
+      <section id="intro" class="hero">
+        <p class="kicker">Dokumentasi</p>
+        <h1>CursAnimation</h1>
+        <p class="lead">Library custom cursor dan animasi <em>rebuild on scroll</em> tanpa dependency. Kursor, swarm, trail, partikel, magnetik, klik, reveal, dan efek membangun elemen seperti di Swarm.</p>
+        <div class="hero-actions">
+          <a class="btn primary" href="#install">Mulai instalasi</a>
+          <a class="btn" href="#rebuild">Lihat rebuild</a>
+        </div>
+        <div class="hero-grid">
+          <div><strong>1.5.4</strong><span>Versi stabil</span></div>
+          <div><strong>0</strong><span>Dependency</span></div>
+          <div><strong>UMD + ESM</strong><span>Format build</span></div>
+          <div><strong>MIT</strong><span>Lisensi</span></div>
+        </div>
+      </section>
+
+      <section id="install">
+        <h2>Instalasi</h2>
+        <p>Ada dua cara: CDN untuk HTML statis, atau package untuk project dengan bundler. Stylesheet wajib dimuat — tanpa CSS, overlay tidak akan tampil.</p>
+
+        <h3>CDN (tanpa build)</h3>
+        <p>Muat CSS di <code>&lt;head&gt;</code> dan JavaScript sebelum konfigurasi. Ganti versi secara eksplisit agar stabil.</p>
+        <pre data-lang="html"><code>&lt;link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rexxzyid/cursanimation@1.5.4/dist/cursanimation.min.css"&gt;
+&lt;script src="https://cdn.jsdelivr.net/gh/rexxzyid/cursanimation@1.5.4/dist/cursanimation.min.js"&gt;&lt;/script&gt;</code></pre>
+
+        <h3>Package (GitHub Packages)</h3>
+        <p>Tambahkan registry dan token ke <code>.npmrc</code>, lalu install.</p>
+        <pre data-lang="ini"><code>@rexxzyid:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}</code></pre>
+        <pre data-lang="bash"><code>npm install @rexxzyid/cursanimation</code></pre>
+        <pre data-lang="js"><code>import CursAnimation from "@rexxzyid/cursanimation";
+import "@rexxzyid/cursanimation/css";
+
+CursAnimation.init({ cursor: "ring" });</code></pre>
+        <p class="note">Package ada di GitHub Packages, jadi instalasi butuh token dengan scope <code>read:packages</code>. Untuk situs statis, CDN lebih sederhana.</p>
+      </section>
+
+      <section id="quickstart">
+        <h2>Mulai cepat</h2>
+        <p>Inisialisasi kursor sekali, lalu tambahkan rebuild untuk elemen yang ingin dianimasikan saat masuk viewport.</p>
+        <pre data-lang="js"><code>CursAnimation.init({
+  cursor: "ring",
+  color: "#f3f0e8",
+  color2: "#ffd84d",
+  size: 32,
+  movement: "elastic",
+  magnetic: { enabled: true, radius: 90, strength: 0.35 },
+  hoverEffects: true
+});
+
+CursAnimation.rebuild({
+  selector: ".reveal",
+  revealClass: "visible",
+  typeText: true,
+  pen: true
+});</code></pre>
+        <p>Pasangkan dengan CSS berikut supaya elemen tersembunyi sampai proses build selesai.</p>
+        <pre data-lang="css"><code>.reveal {
+  opacity: 0;
+}
+
+.reveal.visible {
+  opacity: 1;
+}</code></pre>
+      </section>
+
+      <section id="options">
+        <h2>Opsi kursor</h2>
+        <p>Semua opsi opsional. Nilai yang tidak valid akan melempar <code>TypeError</code> atau <code>RangeError</code>, bukan diabaikan diam-diam.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Opsi</th><th>Default</th><th>Keterangan</th></tr></thead>
+            <tbody>
+              <tr><td><code>cursor</code></td><td><code>"default"</code></td><td>Tipe kursor. Lihat <a href="#types">Tipe kursor</a>.</td></tr>
+              <tr><td><code>color</code> / <code>color2</code></td><td><code>#7c5cff</code> / <code>#22d3ee</code></td><td>Warna utama dan aksen.</td></tr>
+              <tr><td><code>size</code></td><td><code>32</code></td><td>Diameter kursor (6–160 px).</td></tr>
+              <tr><td><code>movement</code></td><td><code>"smooth"</code></td><td><code>instant</code>, <code>smooth</code>, <code>delayed</code>, <code>elastic</code>.</td></tr>
+              <tr><td><code>speed</code></td><td><code>0.25</code></td><td>Faktor ikut per frame (0.02–1).</td></tr>
+              <tr><td><code>elastic</code></td><td><code>{ stiffness: 0.12, damping: 0.78 }</code></td><td>Parameter spring untuk mode elastic.</td></tr>
+              <tr><td><code>imageUrl</code></td><td><code>""</code></td><td>Wajib jika <code>cursor: "image"</code>.</td></tr>
+              <tr><td><code>imageSize</code></td><td><code>32</code></td><td>Ukuran gambar kursor (8–256 px).</td></tr>
+              <tr><td><code>imageHotspot</code></td><td><code>[0, 0]</code></td><td>Titik klik di dalam gambar.</td></tr>
+              <tr><td><code>hoverEffects</code></td><td><code>true</code></td><td>Aktifkan reaksi hover pada link/tombol/teks.</td></tr>
+              <tr><td><code>hoverScale</code></td><td><code>1.8</code></td><td>Skala kursor saat hover (0.5–4).</td></tr>
+              <tr><td><code>hideNativeCursor</code></td><td><code>true</code></td><td>Sembunyikan kursor asli saat mouse aktif.</td></tr>
+              <tr><td><code>touch</code></td><td><code>"off"</code></td><td><code>off</code> atau <code>tap</code> untuk feedback sentuh.</td></tr>
+              <tr><td><code>respectReducedMotion</code></td><td><code>true</code></td><td>Matikan efek berat saat pengguna memilih reduced motion.</td></tr>
+              <tr><td><code>zIndex</code></td><td><code>2147483000</code></td><td>z-index overlay.</td></tr>
+              <tr><td><code>selectors</code></td><td>lihat contoh</td><td>Selector untuk <code>link</code>, <code>button</code>, <code>text</code>, dan <code>ignore</code>.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <pre data-lang="js"><code>selectors: {
+  link: "a[href]",
+  button: "button, [role=button], summary",
+  text: "p, h1, h2, h3, li, blockquote, label",
+  ignore: "[data-ca-ignore]"
+}</code></pre>
+      </section>
+
+      <section id="types">
+        <h2>Tipe kursor</h2>
+        <div class="card-grid">
+          <article><h3>default</h3><p>Kursor lingkaran standar dengan isian.</p></article>
+          <article><h3>circle</h3><p>Lingkaran penuh yang lembut.</p></article>
+          <article><h3>dot</h3><p>Titik kecil, minim distraksi.</p></article>
+          <article><h3>ring</h3><p>Cincin berlubang, cocok untuk tema gelap.</p></article>
+          <article><h3>crosshair</h3><p>Garis bidik seperti aplikasi desain.</p></article>
+          <article><h3>minimal</h3><p>Bentuk paling ringan untuk performa.</p></article>
+          <article><h3>image</h3><p>Gambar custom lewat <code>imageUrl</code> + <code>imageHotspot</code>.</p></article>
+        </div>
+        <pre data-lang="js"><code>CursAnimation.init({
+  cursor: "image",
+  imageUrl: "/cursor.png",
+  imageSize: 40,
+  imageHotspot: [6, 4]
+});</code></pre>
+      </section>
+
+      <section id="effects">
+        <h2>Efek</h2>
+        <p>Efek bisa diaktifkan dengan <code>true</code> atau objek untuk mengatur detailnya. <code>trail</code>, <code>particles</code>, <code>clickEffects</code>, <code>magnetic</code>, dan <code>swarm</code> menerima boolean atau objek.</p>
+
+        <h3>Swarm</h3>
+        <p>Sekumpulan kursor berwarna yang mengorbit, berputar, dan menghindari pointer.</p>
+        <pre data-lang="js"><code>CursAnimation.init({
+  cursor: "ring",
+  swarm: {
+    enabled: true,
+    count: 12,
+    radius: 150,
+    size: 26,
+    speed: 1,
+    avoid: 52,
+    hideCursor: true
+  }
+});</code></pre>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Opsi swarm</th><th>Default</th><th>Keterangan</th></tr></thead>
+            <tbody>
+              <tr><td><code>count</code></td><td><code>18</code></td><td>Jumlah kursor (2–64).</td></tr>
+              <tr><td><code>radius</code></td><td><code>150</code></td><td>Jarak orbit (40–500).</td></tr>
+              <tr><td><code>size</code></td><td><code>26</code></td><td>Ukuran tiap kursor (10–64).</td></tr>
+              <tr><td><code>speed</code></td><td><code>1</code></td><td>Kecepatan animasi (0.2–3).</td></tr>
+              <tr><td><code>avoid</code></td><td><code>52</code></td><td>Radius kosong di sekitar pointer.</td></tr>
+              <tr><td><code>hideCursor</code></td><td><code>true</code></td><td>Sembunyikan kursor tunggal saat swarm aktif.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Trail & partikel</h3>
+        <pre data-lang="js"><code>trail: { enabled: true, length: 14, style: "dots", size: 0.6 },
+particles: { enabled: true, density: 4, size: 6, lifetime: 800, gravity: 0.04, shape: "dot", max: 120 }</code></pre>
+        <p><code>trail.style</code>: <code>dots</code>, <code>gradient</code>, <code>neon</code>. <code>particles.shape</code>: <code>dot</code>, <code>sparkle</code>, <code>mixed</code>.</p>
+
+        <h3>Magnetik, klik, dan visual</h3>
+        <pre data-lang="js"><code>magnetic: { enabled: true, radius: 90, strength: 0.4 },
+clickEffects: { enabled: true, ripple: true, particles: true, count: 12 },
+glow: false,
+neon: false,
+motionBlur: false,
+dragEffects: true</code></pre>
+        <p><code>clickEffects.particles</code> mengatur partikel saat klik; <code>particles</code> utama mengatur partikel jejak.</p>
+      </section>
+
+      <section id="reveal">
+        <h2>Reveal</h2>
+        <p>Animasi masuk sederhana berbasis IntersectionObserver. Berbeda dari rebuild: teks tidak dikosongkan, hanya elemen yang ditransformasikan.</p>
+        <pre data-lang="js"><code>CursAnimation.reveal({
+  selector: "[data-ca-reveal]",
+  once: false,
+  threshold: 0.12,
+  animation: "fade-up",
+  duration: 700,
+  stagger: 70,
+  distance: 28
+});</code></pre>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Opsi</th><th>Default</th><th>Keterangan</th></tr></thead>
+            <tbody>
+              <tr><td><code>selector</code></td><td><code>"[data-ca-reveal]"</code></td><td>Elemen yang dianimasikan.</td></tr>
+              <tr><td><code>once</code></td><td><code>false</code></td><td>Jika false, animasi diputar ulang saat elemen kembali terlihat.</td></tr>
+              <tr><td><code>threshold</code></td><td><code>0.12</code></td><td>Angka atau array 0–1.</td></tr>
+              <tr><td><code>animation</code></td><td><code>"fade-up"</code></td><td><code>fade</code>, <code>fade-up</code>, <code>fade-down</code>, <code>fade-left</code>, <code>fade-right</code>, <code>zoom-in</code>, <code>scale-up</code>, <code>blur-in</code>.</td></tr>
+              <tr><td><code>duration</code></td><td><code>700</code></td><td>Durasi animasi (ms).</td></tr>
+              <tr><td><code>delay</code></td><td><code>0</code></td><td>Jeda awal (ms).</td></tr>
+              <tr><td><code>stagger</code></td><td><code>70</code></td><td>Jeda antar-anak saat induk punya <code>data-ca-stagger</code>.</td></tr>
+              <tr><td><code>distance</code></td><td><code>28</code></td><td>Jarak gerak (px).</td></tr>
+              <tr><td><code>rootMargin</code></td><td><code>"0px"</code></td><td>Margin root IntersectionObserver.</td></tr>
+              <tr><td><code>root</code></td><td><code>null</code></td><td>Elemen root opsional.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <pre data-lang="html"><code>&lt;h2 data-ca-reveal="blur-in"&gt;Judul&lt;/h2&gt;
+
+&lt;ul data-ca-stagger="80"&gt;
+  &lt;li data-ca-reveal&gt;Satu&lt;/li&gt;
+  &lt;li data-ca-reveal data-ca-delay="120"&gt;Dua&lt;/li&gt;
+&lt;/ul&gt;</code></pre>
+      </section>
+
+      <section id="rebuild">
+        <h2>Rebuild on scroll</h2>
+        <p>Efek utama ala Swarm. Saat elemen masuk viewport, library menggambar kotak, mengetik teks per karakter, menelusuri media dengan pen, lalu membersihkan overlay. Jika <code>once: false</code>, elemen dibangun ulang setiap kali kembali terlihat.</p>
+
+        <div class="phases">
+          <div><span>1</span><strong>Box</strong><p>Kursor menggambar outline dan label ukuran.</p></div>
+          <div><span>2</span><strong>Type</strong><p>Teks diisi karakter demi karakter dengan caret.</p></div>
+          <div><span>3</span><strong>Pen</strong><p>Garis menelusuri media, lalu media di-reveal.</p></div>
+          <div><span>4</span><strong>Exit</strong><p>Kursor keluar, overlay dibersihkan, class reveal ditambahkan.</p></div>
+        </div>
+
+        <h3>HTML & CSS wajib</h3>
+        <pre data-lang="html"><code>&lt;section class="reveal"&gt;
+  &lt;h2&gt;Judul&lt;/h2&gt;
+  &lt;p&gt;Deskripsi&lt;/p&gt;
+&lt;/section&gt;</code></pre>
+        <pre data-lang="css"><code>.reveal {
+  opacity: 0;
+}
+
+.reveal.visible {
+  opacity: 1;
+}</code></pre>
+        <pre data-lang="js"><code>CursAnimation.rebuild({
+  selector: ".reveal",
+  revealClass: "visible",
+  threshold: 0.14,
+  duration: 440,
+  agents: 2,
+  color: "auto",
+  autoDark: "#111111",
+  autoLight: "#f3f0e8",
+  typeText: true,
+  typeSelector: "h1,h2,h3,p,li,blockquote",
+  charDelay: 9,
+  maxTypeDuration: 980,
+  pen: true,
+  stagger: 60,
+  maxConcurrent: 2
+});</code></pre>
+
+        <h3>Opsi</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Opsi</th><th>Default</th><th>Keterangan</th></tr></thead>
+            <tbody>
+              <tr><td><code>selector</code></td><td><code>"[data-ca-rebuild]"</code></td><td>Elemen target.</td></tr>
+              <tr><td><code>once</code></td><td><code>false</code></td><td>Jika true, tidak dibangun ulang.</td></tr>
+              <tr><td><code>threshold</code></td><td><code>0.12</code></td><td>Batas visibilitas 0–1.</td></tr>
+              <tr><td><code>duration</code></td><td><code>520</code></td><td>Durasi menggambar kotak (ms).</td></tr>
+              <tr><td><code>agents</code></td><td><code>2</code></td><td>Jumlah kursor (1–3).</td></tr>
+              <tr><td><code>color</code></td><td><code>"#0d99ff"</code></td><td>Warna outline/label, atau <code>"auto"</code> untuk kontras otomatis.</td></tr>
+              <tr><td><code>autoDark</code> / <code>autoLight</code></td><td><code>#111111</code> / <code>#ffdc58</code></td><td>Warna yang dipakai saat mode auto.</td></tr>
+              <tr><td><code>colors</code></td><td><code>null</code></td><td>Palet kursor; null memakai palet Swarm.</td></tr>
+              <tr><td><code>label</code></td><td><code>true</code></td><td>Tampilkan label ukuran elemen.</td></tr>
+              <tr><td><code>labelMinArea</code></td><td><code>7000</code></td><td>Luas minimum untuk label (px²).</td></tr>
+              <tr><td><code>stagger</code></td><td><code>90</code></td><td>Jeda antar elemen (ms).</td></tr>
+              <tr><td><code>maxConcurrent</code></td><td><code>2</code></td><td>Jumlah build bersamaan.</td></tr>
+              <tr><td><code>typeText</code></td><td><code>true</code></td><td>Ketik teks per karakter.</td></tr>
+              <tr><td><code>typeSelector</code></td><td><code>null</code></td><td>Batasi teks yang diketik ke elemen tertentu, mis. <code>"h1,h2,p"</code>.</td></tr>
+              <tr><td><code>charDelay</code></td><td><code>16</code></td><td>Jeda antar karakter (ms).</td></tr>
+              <tr><td><code>maxTypeDuration</code></td><td><code>1600</code></td><td>Batas total durasi mengetik (ms).</td></tr>
+              <tr><td><code>pen</code></td><td><code>true</code></td><td>Telusuri media dengan pen sebelum reveal.</td></tr>
+              <tr><td><code>revealClass</code></td><td><code>"ca-built"</code></td><td>Class yang ditambahkan agar elemen terlihat.</td></tr>
+              <tr><td><code>rootMargin</code></td><td><code>"0px"</code></td><td>Margin root IntersectionObserver.</td></tr>
+              <tr><td><code>respectReducedMotion</code></td><td><code>true</code></td><td>Lewati animasi saat reduced motion.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Catatan implementasi</h3>
+        <ul class="list">
+          <li><strong>Replay:</strong> dengan <code>once: false</code>, class reveal dilepas saat elemen keluar viewport, lalu build diulang ketika masuk lagi.</li>
+          <li><strong>Teks:</strong> teks di dalam <code>typeSelector</code> dikosongkan saat build dimulai. Jangan menaruh elemen interaktif di dalam teks yang diketik.</li>
+          <li><strong>Media:</strong> <code>img</code>, <code>svg</code>, <code>video</code>, <code>canvas</code>, <code>picture</code>, dan <code>iframe</code> ikut tertutup sampai fase pen selesai.</li>
+          <li><strong>Konten dinamis:</strong> panggil <code>refresh()</code> setelah menambah elemen baru.</li>
+          <li><strong>Performa:</strong> gunakan <code>agents: 1</code>, <code>maxConcurrent: 1</code>, <code>typeSelector: "h1,h2"</code>, dan duration lebih pendek di mobile.</li>
+        </ul>
+      </section>
+
+      <section id="demo">
+        <h2>Live demo</h2>
+        <p>Kartu di bawah memakai rebuild dengan konfigurasi ringan. Scroll keluar lalu masuk lagi untuk melihat replay.</p>
+        <div class="demo-grid">
+          <article class="demo-reveal"><span>01</span><h3>Draw</h3><p>Outline digambar oleh kursor berwarna sebelum konten muncul.</p></article>
+          <article class="demo-reveal"><span>02</span><h3>Type</h3><p>Teks diketik karakter demi karakter dengan caret yang berkedip.</p></article>
+          <article class="demo-reveal"><span>03</span><h3>Pen</h3><p>Media ditelusuri garis pen, lalu di-reveal dengan transisi.</p></article>
+        </div>
+      </section>
+
+      <section id="api">
+        <h2>API</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Method</th><th>Keterangan</th></tr></thead>
+            <tbody>
+              <tr><td><code>init(options?)</code></td><td>Pasang kursor. Memanggil ulang akan mengganti instance sebelumnya.</td></tr>
+              <tr><td><code>destroy()</code></td><td>Hapus overlay, listener, observer, dan loop.</td></tr>
+              <tr><td><code>enable()</code> / <code>disable()</code></td><td>Aktifkan/nonaktifkan tanpa menghancurkan instance.</td></tr>
+              <tr><td><code>setCursor(type)</code></td><td>Shortcut <code>setOptions({ cursor: type })</code>.</td></tr>
+              <tr><td><code>setOptions(options)</code></td><td>Gabungkan opsi baru ke instance berjalan.</td></tr>
+              <tr><td><code>getOptions()</code></td><td>Salinan opsi aktif, atau <code>null</code> sebelum init.</td></tr>
+              <tr><td><code>isEnabled()</code> / <code>isSupported()</code></td><td>Status instance dan dukungan DOM.</td></tr>
+              <tr><td><code>reveal(options?)</code></td><td>Mulai reveal. Mengembalikan <code>{ refresh(), destroy() }</code>.</td></tr>
+              <tr><td><code>rebuild(options?)</code></td><td>Mulai rebuild. Mengembalikan <code>{ refresh(), destroy() }</code>.</td></tr>
+              <tr><td><code>refresh()</code></td><td>Pindai ulang DOM untuk target hover, magnetik, reveal, dan rebuild.</td></tr>
+              <tr><td><code>capabilities()</code></td><td>Laporan fitur browser yang terdeteksi.</td></tr>
+              <tr><td><code>version</code></td><td>String versi library.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><code>setOptions</code>, <code>setCursor</code>, <code>enable</code>, dan <code>disable</code> melempar error jika <code>init</code> belum dipanggil. Semua method aman dipanggil saat SSR.</p>
+      </section>
+
+      <section id="attributes">
+        <h2>Atribut data</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Atribut</th><th>Dipakai oleh</th><th>Fungsi</th></tr></thead>
+            <tbody>
+              <tr><td><code>data-ca-reveal</code></td><td>Reveal</td><td>Menandai elemen; nilai opsional mengganti animasi.</td></tr>
+              <tr><td><code>data-ca-delay</code></td><td>Reveal</td><td>Jeda khusus elemen (ms).</td></tr>
+              <tr><td><code>data-ca-duration</code></td><td>Reveal</td><td>Durasi khusus elemen (ms).</td></tr>
+              <tr><td><code>data-ca-stagger</code></td><td>Reveal</td><td>Dipasang di induk untuk jeda antar-anak.</td></tr>
+              <tr><td><code>data-ca-hover</code></td><td>Kursor</td><td>Paksa state <code>link</code>, <code>button</code>, <code>text</code>, atau <code>none</code>.</td></tr>
+              <tr><td><code>data-ca-ignore</code></td><td>Kursor</td><td>Kecualikan elemen dari hover/magnetik.</td></tr>
+              <tr><td><code>data-ca-magnetic</code></td><td>Kursor</td><td>Jadikan elemen target magnetik.</td></tr>
+              <tr><td><code>data-ca-rebuild</code></td><td>Rebuild</td><td>Selector default jika tidak memakai class sendiri.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="performance">
+        <h2>Performa</h2>
+        <p>Efek kursor berjalan selama pointer bergerak dan bisa membebani perangkat kelas bawah. Rekomendasi:</p>
+        <ul class="list">
+          <li>Aktifkan kursor hanya pada perangkat dengan mouse: <code>matchMedia("(pointer: fine)").matches</code>.</li>
+          <li>Kurangi <code>swarm.count</code> (8–12), matikan <code>trail</code>, dan kecilkan <code>clickEffects.count</code>.</li>
+          <li>Di mobile, pakai rebuild ringan: <code>agents: 1</code>, <code>typeSelector: "h1,h2"</code>, <code>maxConcurrent: 1</code>.</li>
+          <li>Hindari <code>backdrop-filter</code>, <code>mix-blend-mode</code>, dan layer <code>fixed</code> full-screen di halaman yang berat.</li>
+          <li>Muat script dengan <code>defer</code> agar tidak memblokir render.</li>
+          <li><code>respectReducedMotion: true</code> otomatis mematikan efek berat bagi pengguna yang memintanya.</li>
+        </ul>
+        <pre data-lang="js"><code>const finePointer = matchMedia("(pointer: fine)").matches;
+
+if (finePointer) {
+  CursAnimation.init({ cursor: "ring", swarm: { enabled: true, count: 10 } });
+}
+
+CursAnimation.rebuild({
+  selector: ".reveal",
+  agents: 1,
+  typeSelector: "h1,h2",
+  maxConcurrent: 1
+});</code></pre>
+      </section>
+
+      <section id="troubleshooting">
+        <h2>Troubleshooting</h2>
+        <div class="faq">
+          <details><summary>Kursor tidak muncul</summary><p>Pastikan CSS sudah dimuat dan <code>init()</code> dipanggil. Cek Console untuk error opsi. Di perangkat sentuh, kursor memang disembunyikan.</p></details>
+          <details><summary>Elemen tetap tidak terlihat setelah rebuild</summary><p>Pastikan <code>revealClass</code> sama dengan CSS, misalnya <code>revealClass: "visible"</code> dan <code>.reveal.visible { opacity: 1 }</code>. Tanpa <code>IntersectionObserver</code>, elemen langsung ditampilkan.</p></details>
+          <details><summary>Rebuild tidak mengulang</summary><p>Gunakan <code>once: false</code> (default). Elemen harus benar-benar keluar viewport agar class reveal dilepas.</p></details>
+          <details><summary>Garis overlay salah posisi saat scroll</summary><p>Gunakan versi 1.5.3 ke atas — overlay sudah menempel ke dokumen, bukan viewport.</p></details>
+          <details><summary>Gagal install dari GitHub Packages</summary><p>Tambahkan <code>.npmrc</code> dan token dengan scope <code>read:packages</code>. Alternatif termudah: pakai CDN.</p></details>
+          <details><summary>Kursor ganda</summary><p>Pastikan hanya satu instance CursAnimation yang aktif. Panggil <code>destroy()</code> sebelum init ulang, atau gunakan <code>setOptions()</code>.</p></details>
+        </div>
+      </section>
+
+      <section id="support">
+        <h2>Browser & lisensi</h2>
+        <p>Menggunakan feature detection, bukan sniffing. Pointer Events dipakai bila tersedia; tanpa <code>matchMedia</code> efek tetap aktif; tanpa <code>IntersectionObserver</code> elemen langsung tampil. Overlay selalu <code>pointer-events: none</code> dan animasi berhenti saat tab tidak aktif.</p>
+        <p>Lisensi MIT. Dibuat oleh <a href="https://github.com/rexxzyid" target="_blank" rel="noreferrer">RexxHayanasi</a>. Terinspirasi dari Swarm Rebuild, tanpa kode atau aset dari proyek tersebut.</p>
+        <div class="hero-actions">
+          <a class="btn primary" href="https://github.com/rexxzyid/cursanimation" target="_blank" rel="noreferrer">Repository ↗</a>
+          <a class="btn" href="#install">Kembali ke instalasi</a>
+        </div>
+      </section>
+
+      <footer>
+        <span>CursAnimation v1.5.4</span>
+        <span>MIT © RexxHayanasi</span>
+      </footer>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/gh/rexxzyid/cursanimation@1.5.4/dist/cursanimation.min.js"></script>
+  <script defer src="script.js"></script>
+</body>
+</html>
