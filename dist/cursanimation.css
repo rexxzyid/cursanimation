@@ -1,4 +1,4 @@
-/*! CursAnimation v1.5.2 | MIT | RexxHayanasi | https://cursanimation.rexxhayanasi.cv */
+/*! CursAnimation v1.5.3 | MIT | RexxHayanasi | https://cursanimation.rexxhayanasi.cv */
 :root {
   --ca-color: #7c5cff;
   --ca-color2: #22d3ee;
@@ -333,9 +333,12 @@ html.ca-hide-native * {
   opacity: 0;
 }
 .ca-rebuild-layer {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  overflow: visible;
   pointer-events: none;
   z-index: 2147483001;
 }
@@ -352,9 +355,8 @@ html.ca-hide-native * {
 }
 .ca-rebuild-outline {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  top: 0;
+  left: 0;
   overflow: visible;
 }
 .ca-rebuild-outline rect {

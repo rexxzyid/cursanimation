@@ -1,4 +1,4 @@
-/*! CursAnimation v1.5.2 | MIT | RexxHayanasi | https://cursanimation.rexxhayanasi.cv */
+/*! CursAnimation v1.5.3 | MIT | RexxHayanasi | https://cursanimation.rexxhayanasi.cv */
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -1535,6 +1535,25 @@ function resolveOptions2(options) {
 }
 var easeInOut = (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 var clamp2 = (v, a, b) => Math.max(a, Math.min(b, v));
+function scrollOffsets() {
+  return {
+    x: window.pageXOffset || document.documentElement.scrollLeft || 0,
+    y: window.pageYOffset || document.documentElement.scrollTop || 0
+  };
+}
+function toDocRect(rect) {
+  const offset = scrollOffsets();
+  const left = rect.left + offset.x;
+  const top = rect.top + offset.y;
+  return {
+    left,
+    top,
+    right: left + rect.width,
+    bottom: top + rect.height,
+    width: rect.width,
+    height: rect.height
+  };
+}
 function parseColor(value) {
   const match = value && value.match(/rgba?\(([^)]+)\)/);
   if (!match) return null;
@@ -1596,6 +1615,7 @@ var Rebuild = class {
     this.svg = document.createElementNS(SVGNS2, "svg");
     this.svg.setAttribute("class", "ca-rebuild-outline");
     this.layer.appendChild(this.svg);
+    this.sizeCanvas();
     if (features.intersectionObserver()) {
       this.observer = new window.IntersectionObserver((entries) => this.handle(entries), {
         rootMargin: this.config.rootMargin,
@@ -1652,11 +1672,13 @@ var Rebuild = class {
     this.queue = this.queue.filter((job) => job.element !== element);
   }
   start(element) {
-    const rect = element.getBoundingClientRect();
-    if (rect.width < 4 || rect.height < 4) {
+    const viewport = element.getBoundingClientRect();
+    if (viewport.width < 4 || viewport.height < 4) {
       this.finish(element);
       return;
     }
+    const rect = toDocRect(viewport);
+    this.sizeCanvas();
     const color = this.config.color === "auto" ? backgroundLuminance(element) < 0.45 ? this.config.autoLight : this.config.autoDark : this.config.color;
     const build = {
       element,
@@ -1680,7 +1702,7 @@ var Rebuild = class {
     };
     build.typeDuration = clamp2(build.textNodes.reduce((sum, entry) => sum + entry.text.length, 0) * this.config.charDelay, 260, this.config.maxTypeDuration);
     this.lastStart = build.start;
-    element.style.minHeight = `${Math.round(rect.height)}px`;
+    element.style.minHeight = `${Math.round(viewport.height)}px`;
     for (const entry of build.textNodes) entry.node.nodeValue = "";
     for (const media of build.media) {
       media.classList.add("ca-build-anim", "ca-build-media");
@@ -1782,7 +1804,7 @@ var Rebuild = class {
       let best = null;
       let area = 0;
       for (const item of build.media) {
-        const box = item.getBoundingClientRect();
+        const box = toDocRect(item.getBoundingClientRect());
         const next = box.width * box.height;
         if (box.width > 4 && box.height > 4 && next > area) {
           best = item;
@@ -1794,7 +1816,7 @@ var Rebuild = class {
     }
     const target = build.penTarget;
     if (!build.penRect) {
-      const box = target.getBoundingClientRect();
+      const box = toDocRect(target.getBoundingClientRect());
       const perimeter = 2 * (box.width + box.height);
       const rectEl = document.createElementNS(SVGNS2, "rect");
       rectEl.style.stroke = build.color;
@@ -1939,7 +1961,14 @@ var Rebuild = class {
   wake() {
     if (!this.frame) this.frame = requestFrame(() => this.tick());
   }
+  sizeCanvas() {
+    const width = Math.max(document.documentElement.scrollWidth, window.innerWidth || 0);
+    const height = Math.max(document.documentElement.scrollHeight, window.innerHeight || 0);
+    this.svg.setAttribute("width", String(width));
+    this.svg.setAttribute("height", String(height));
+  }
   refresh() {
+    this.sizeCanvas();
     this.scan();
     this.wake();
   }
@@ -1959,7 +1988,7 @@ var Rebuild = class {
 };
 
 // src/version.js
-var version = "1.5.2";
+var version = "1.5.3";
 
 // src/index.js
 var engine = new Engine();

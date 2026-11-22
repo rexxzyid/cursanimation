@@ -379,9 +379,12 @@ html.ca-hide-native * {
 }
 
 .ca-rebuild-layer {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  overflow: visible;
   pointer-events: none;
   z-index: 2147483001;
 }
@@ -401,9 +404,8 @@ html.ca-hide-native * {
 
 .ca-rebuild-outline {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  top: 0;
+  left: 0;
   overflow: visible;
 }
 
