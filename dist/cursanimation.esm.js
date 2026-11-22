@@ -1,4 +1,4 @@
-/*! CursAnimation v1.2.0 | MIT | RexxHayanasi | https://cursanimation.rexxhayanasi.cv */
+/*! CursAnimation v1.3.0 | MIT | RexxHayanasi | https://cursanimation.rexxhayanasi.cv */
 
 // src/config.js
 var CURSOR_TYPES = ["default", "circle", "dot", "ring", "crosshair", "minimal", "image"];
@@ -1438,13 +1438,17 @@ var Reveal = class {
 
 // src/rebuild.js
 var SVGNS2 = "http://www.w3.org/2000/svg";
-var SHAPES = ["arrow", "cross", "pen", "ibeam"];
 var REBUILD_DEFAULTS = {
   selector: "[data-ca-rebuild]",
   once: false,
-  threshold: 0.1,
-  duration: 700,
+  threshold: 0.12,
+  duration: 640,
   agents: 2,
+  color: "#0d99ff",
+  colors: null,
+  label: true,
+  stagger: 90,
+  maxConcurrent: 2,
   revealClass: "ca-built",
   rootMargin: "0px",
   respectReducedMotion: true
@@ -1464,16 +1468,27 @@ function resolveOptions2(options) {
   if (typeof config.threshold !== "number" || config.threshold < 0 || config.threshold > 1) {
     throw new RangeError("Rebuild option threshold must be a number between 0 and 1");
   }
+  if (typeof config.color !== "string" || config.color.length === 0) {
+    throw new TypeError("Rebuild option color must be a CSS colour string");
+  }
+  if (config.colors !== null && (!Array.isArray(config.colors) || config.colors.length === 0)) {
+    throw new TypeError("Rebuild option colors must be a non-empty array");
+  }
   config.duration = Math.max(120, Number(config.duration) || REBUILD_DEFAULTS.duration);
-  config.agents = Math.min(4, Math.max(1, Math.round(Number(config.agents) || 1)));
+  config.stagger = Math.max(0, Number(config.stagger) || 0);
+  config.agents = Math.min(3, Math.max(1, Math.round(Number(config.agents) || 1)));
+  config.maxConcurrent = Math.max(1, Math.round(Number(config.maxConcurrent) || 1));
   return config;
 }
-var easeOut2 = (t) => 1 - Math.pow(1 - t, 3);
+var easeInOut = (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 var Rebuild = class {
   constructor(options) {
     this.config = resolveOptions2(options);
+    this.palette = this.config.colors ? this.config.colors.slice() : SWARM_COLORS.slice();
     this.items = /* @__PURE__ */ new Set();
     this.builds = /* @__PURE__ */ new Map();
+    this.queue = [];
+    this.lastStart = 0;
     this.observer = null;
     this.frame = 0;
     this.reduced = this.config.respectReducedMotion && prefersReducedMotion();
@@ -1506,6 +1521,7 @@ var Rebuild = class {
     for (const element of [...this.items]) {
       if (element.isConnected) continue;
       if (this.observer) this.observer.unobserve(element);
+      this.dequeue(element);
       this.abort(element);
       this.items.delete(element);
     }
@@ -1527,6 +1543,20 @@ var Rebuild = class {
   }
   begin(element) {
     if (this.builds.has(element) || element.classList.contains(this.config.revealClass)) return;
+    if (this.queue.some((job) => job.element === element)) return;
+    this.queue.push({ element });
+    this.pump();
+  }
+  pump() {
+    while (this.queue.length > 0 && this.builds.size < this.config.maxConcurrent) {
+      const job = this.queue.shift();
+      this.start(job.element);
+    }
+  }
+  dequeue(element) {
+    this.queue = this.queue.filter((job) => job.element !== element);
+  }
+  start(element) {
     const rect = element.getBoundingClientRect();
     if (rect.width < 4 || rect.height < 4) {
       this.finish(element);
@@ -1535,35 +1565,43 @@ var Rebuild = class {
     const build = {
       element,
       rect,
-      start: 0,
+      start: Math.max(now(), this.lastStart + this.config.stagger),
       added: false,
       cursors: [],
       rectEl: null,
       label: null
     };
-    const ns = SVGNS2;
-    const rectEl = document.createElementNS(ns, "rect");
+    this.lastStart = build.start;
+    const color = this.config.color;
+    const rectEl = document.createElementNS(SVGNS2, "rect");
     rectEl.setAttribute("rx", "4");
-    rectEl.setAttribute("stroke-dasharray", "0");
-    rectEl.setAttribute("stroke-dashoffset", "0");
+    rectEl.style.fill = color;
+    rectEl.style.stroke = color;
+    rectEl.setAttribute("fill-opacity", "0");
+    rectEl.setAttribute("x", String(rect.left));
+    rectEl.setAttribute("y", String(rect.top));
+    rectEl.setAttribute("width", "0");
+    rectEl.setAttribute("height", "0");
     this.svg.appendChild(rectEl);
     build.rectEl = rectEl;
-    const count = this.config.agents;
-    for (let index = 0; index < count; index++) {
-      build.cursors.push(this.makeCursor(rect, index, count));
+    for (let index = 0; index < this.config.agents; index++) {
+      build.cursors.push(this.makeCursor(rect, index));
     }
-    if (this.config.agents > 0) {
+    if (this.config.label) {
       const label = createElement("div", "ca-rebuild-label", this.layer);
       label.textContent = `${Math.round(rect.width)} \xD7 ${Math.round(rect.height)}`;
+      label.style.background = color;
+      label.style.opacity = "0";
+      label.style.left = `${Math.round(rect.left + rect.width / 2)}px`;
+      label.style.top = `${Math.round(rect.top + rect.height + 8)}px`;
       build.label = label;
     }
-    build.start = now();
     this.builds.set(element, build);
     this.wake();
   }
-  makeCursor(rect, index, count) {
-    const color = SWARM_COLORS[Math.random() * SWARM_COLORS.length | 0];
-    const shape = index === 0 ? "cross" : SHAPES[Math.random() * SHAPES.length | 0];
+  makeCursor(rect, index) {
+    const color = this.palette[Math.random() * this.palette.length | 0];
+    const shape = index === 0 ? "cross" : index === 1 ? "arrow" : "pen";
     const element = createElement("div", "ca-rebuild-cursor", this.layer);
     const svg = document.createElementNS(SVGNS2, "svg");
     svg.setAttribute("width", "28");
@@ -1573,16 +1611,15 @@ var Rebuild = class {
     const [hx, hy] = CURSOR_HOTSPOTS[shape];
     svg.style.transform = `translate(${-hx}px,${-hy}px)`;
     element.appendChild(svg);
-    const side = index % 2 === 0 ? -1 : 1;
-    const spread = count > 1 ? index / (count - 1) : 0;
+    const corner = index % 2 === 0 ? 1 : -1;
     return {
       element,
-      fromX: side < 0 ? rect.left - 120 - index * 30 : rect.right + 120 + index * 30,
-      fromY: rect.top - 80 + spread * (rect.height + 160),
-      toX: side < 0 ? rect.left : rect.right,
-      toY: side < 0 ? rect.top : rect.bottom,
-      outX: side < 0 ? rect.left - 160 - index * 20 : rect.right + 160 + index * 20,
-      outY: side < 0 ? rect.top - 120 : rect.bottom + 120
+      fromX: corner > 0 ? rect.left - 60 : rect.right + 60,
+      fromY: corner > 0 ? rect.top - 50 : rect.bottom + 50,
+      toX: corner > 0 ? rect.right : rect.left,
+      toY: corner > 0 ? rect.bottom : rect.top,
+      outX: corner > 0 ? rect.right + 70 : rect.left - 70,
+      outY: corner > 0 ? rect.bottom + 60 : rect.top - 60
     };
   }
   tick() {
@@ -1591,28 +1628,25 @@ var Rebuild = class {
     let active = false;
     for (const [element, build] of this.builds) {
       if (build.added) continue;
-      const progress = Math.min(1, (t - build.start) / this.config.duration);
-      const eased = easeOut2(progress);
-      for (const cursor of build.cursors) {
+      const progress = Math.min(1, Math.max(0, (t - build.start) / this.config.duration));
+      const eased = easeInOut(progress);
+      const rect = build.rect;
+      const growX = rect.left + rect.width * eased;
+      const growY = rect.top + rect.height * eased;
+      build.rectEl.setAttribute("width", String(Math.max(0, growX - rect.left)));
+      build.rectEl.setAttribute("height", String(Math.max(0, growY - rect.top)));
+      build.rectEl.setAttribute("fill-opacity", String(0.06 * eased));
+      const lead = build.cursors[0];
+      if (lead) {
+        lead.element.style.transform = `translate3d(${Math.round(growX)}px,${Math.round(growY)}px,0)`;
+      }
+      for (let index = 1; index < build.cursors.length; index++) {
+        const cursor = build.cursors[index];
         const x = cursor.fromX + (cursor.toX - cursor.fromX) * eased;
         const y = cursor.fromY + (cursor.toY - cursor.fromY) * eased;
         cursor.element.style.transform = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`;
       }
-      const rect = build.rect;
-      const width = rect.width * eased;
-      const height = rect.height * eased;
-      build.rectEl.setAttribute("x", String(rect.left));
-      build.rectEl.setAttribute("y", String(rect.top));
-      build.rectEl.setAttribute("width", String(width));
-      build.rectEl.setAttribute("height", String(height));
-      const perimeter = 2 * (rect.width + rect.height);
-      build.rectEl.setAttribute("stroke-dasharray", String(perimeter));
-      build.rectEl.setAttribute("stroke-dashoffset", String(perimeter * (1 - eased)));
-      if (build.label) {
-        build.label.style.left = `${Math.round(rect.left + rect.width / 2)}px`;
-        build.label.style.top = `${Math.round(rect.top + rect.height + 8)}px`;
-        build.label.style.opacity = String(eased);
-      }
+      if (build.label) build.label.style.opacity = String(eased);
       if (progress >= 1 && !build.added) {
         build.added = true;
         element.classList.add(this.config.revealClass);
@@ -1626,15 +1660,16 @@ var Rebuild = class {
     const start = now();
     const step = () => {
       if (!this.builds.has(build.element)) return;
-      const p = Math.min(1, (now() - start) / 320);
+      const p = Math.min(1, (now() - start) / 260);
       for (const cursor of build.cursors) {
         const x = cursor.toX + (cursor.outX - cursor.toX) * p;
         const y = cursor.toY + (cursor.outY - cursor.toY) * p;
         cursor.element.style.transform = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`;
         cursor.element.style.opacity = String(1 - p);
       }
+      build.rectEl.setAttribute("fill-opacity", String(0.06 * (1 - p)));
+      build.rectEl.setAttribute("stroke-opacity", String(1 - p));
       if (build.label) build.label.style.opacity = String(1 - p);
-      build.rectEl.style.opacity = String(1 - p);
       if (p < 1) requestFrame(step);
       else this.clearBuild(build);
     };
@@ -1645,16 +1680,19 @@ var Rebuild = class {
     if (build.label) build.label.remove();
     if (build.rectEl) build.rectEl.remove();
     this.builds.delete(build.element);
+    this.pump();
   }
   abort(element) {
     const build = this.builds.get(element);
     if (build) this.clearBuild(build);
   }
   finish(element) {
+    this.dequeue(element);
     this.abort(element);
     element.classList.add(this.config.revealClass);
   }
   reset(element) {
+    this.dequeue(element);
     this.abort(element);
     if (this.config.once) return;
     element.classList.remove(this.config.revealClass);
@@ -1676,12 +1714,13 @@ var Rebuild = class {
     for (const build of [...this.builds.values()]) this.clearBuild(build);
     for (const element of this.items) element.classList.remove(this.config.revealClass);
     this.items.clear();
+    this.queue = [];
     this.layer.remove();
   }
 };
 
 // src/version.js
-var version = "1.2.0";
+var version = "1.3.0";
 
 // src/index.js
 var engine = new Engine();

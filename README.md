@@ -141,13 +141,18 @@ Plays a Swarm-style build for elements as they scroll into view: a pair of colou
 CursAnimation.rebuild({
   selector: ".reveal",
   threshold: 0.1,
-  duration: 700,
+  duration: 640,
   agents: 2,
+  color: "#111111",
+  colors: ["#111111", "#ffdc58", "#ff8a00"],
+  label: true,
+  stagger: 90,
+  maxConcurrent: 2,
   revealClass: "visible"
 });
 ```
 
-The class in `revealClass` is added when the build finishes and removed when the element leaves, so pair the selector with a CSS class that hides the element by default. Options: `selector`, `once`, `threshold`, `duration`, `agents` (1–4), `revealClass`, `rootMargin`, `respectReducedMotion`.
+The class in `revealClass` is added when the build finishes and removed when the element leaves, so pair the selector with a CSS class that hides the element by default. Options: `selector`, `once`, `threshold`, `duration`, `agents` (1–3), `color` (outline/label), `colors` (cursor palette), `label`, `stagger` (ms between starts), `maxConcurrent`, `revealClass`, `rootMargin`, `respectReducedMotion`.
 
 ## Browser behaviour
 

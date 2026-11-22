@@ -148,6 +148,11 @@ export interface RebuildOptions {
   threshold?: number;
   duration?: number;
   agents?: number;
+  color?: string;
+  colors?: string[] | null;
+  label?: boolean;
+  stagger?: number;
+  maxConcurrent?: number;
   revealClass?: string;
   rootMargin?: string;
   respectReducedMotion?: boolean;
