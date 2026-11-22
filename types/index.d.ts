@@ -142,6 +142,22 @@ export interface RevealController {
   destroy(): void;
 }
 
+export interface RebuildOptions {
+  selector?: string;
+  once?: boolean;
+  threshold?: number;
+  duration?: number;
+  agents?: number;
+  revealClass?: string;
+  rootMargin?: string;
+  respectReducedMotion?: boolean;
+}
+
+export interface RebuildController {
+  refresh(): void;
+  destroy(): void;
+}
+
 export interface Capabilities {
   pointerEvents: boolean;
   intersectionObserver: boolean;
@@ -162,6 +178,7 @@ export interface CursAnimationApi {
   isEnabled(): boolean;
   isSupported(): boolean;
   reveal(options?: RevealOptions): RevealController;
+  rebuild(options?: RebuildOptions): RebuildController;
   refresh(): CursAnimationApi;
   capabilities(): Capabilities;
 }
@@ -177,6 +194,7 @@ export function setCursor(type: CursorType): CursAnimationApi;
 export function setOptions(options: CursAnimationInput): CursAnimationApi;
 export function getOptions(): CursAnimationOptions | null;
 export function reveal(options?: RevealOptions): RevealController;
+export function rebuild(options?: RebuildOptions): RebuildController;
 export function refresh(): CursAnimationApi;
 
 export default CursAnimation;

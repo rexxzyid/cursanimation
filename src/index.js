@@ -1,10 +1,12 @@
 import { Engine } from "./engine.js";
 import { Reveal } from "./reveal.js";
+import { Rebuild } from "./rebuild.js";
 import { hasDOM, features, prefersReducedMotion } from "./compat.js";
 import { version } from "./version.js";
 
 const engine = new Engine();
 const revealers = new Set();
+const rebuilders = new Set();
 
 function requireStarted() {
   if (!engine.started) {
@@ -80,10 +82,26 @@ const CursAnimation = {
     };
   },
 
+  rebuild(options) {
+    if (!hasDOM()) {
+      return { refresh() {}, destroy() {} };
+    }
+    const instance = new Rebuild(options);
+    rebuilders.add(instance);
+    return {
+      refresh: () => instance.refresh(),
+      destroy: () => {
+        instance.destroy();
+        rebuilders.delete(instance);
+      },
+    };
+  },
+
   refresh() {
     if (!hasDOM()) return CursAnimation;
     engine.refresh();
     for (const instance of revealers) instance.refresh();
+    for (const instance of rebuilders) instance.refresh();
     return CursAnimation;
   },
 
@@ -106,6 +124,7 @@ export const setCursor = CursAnimation.setCursor;
 export const setOptions = CursAnimation.setOptions;
 export const getOptions = CursAnimation.getOptions;
 export const reveal = CursAnimation.reveal;
+export const rebuild = CursAnimation.rebuild;
 export const refresh = CursAnimation.refresh;
 export { version };
 export default CursAnimation;

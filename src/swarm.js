@@ -205,3 +205,7 @@ export class Swarm {
     this.layer.remove();
   }
 }
+
+export const SWARM_COLORS = COLORS;
+export const cursorShapeSVG = shapeSVG;
+export const CURSOR_HOTSPOTS = HOT;

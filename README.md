@@ -48,6 +48,7 @@ The stylesheet is required. Without it the overlay has no styling.
 | `setOptions(options)` | Merges options into the running instance. Nested objects are merged. |
 | `getOptions()` | Returns a copy of the resolved options, or `null` before `init`. |
 | `reveal(options?)` | Starts a scroll-reveal instance. Returns `{ refresh(), destroy() }`. |
+| `rebuild(options?)` | Starts a Swarm-style rebuild-on-scroll instance. Returns `{ refresh(), destroy() }`. |
 | `refresh()` | Re-reads the DOM for hover targets, magnetic targets and reveal elements. Call it after rendering new content. |
 | `capabilities()` | Reports detected browser features. |
 | `version` | Library version string. |
@@ -131,6 +132,22 @@ Animations: `fade`, `fade-up`, `fade-down`, `fade-left` (enters from the left), 
 With `once: false` elements hide when they leave the viewport and play again on every return. Elements without `IntersectionObserver` support are shown immediately. `prefers-reduced-motion` shows everything without animation.
 
 Options: `selector`, `once`, `threshold` (number or array), `animation`, `duration` (ms), `delay` (ms), `stagger` (ms), `distance` (px), `rootMargin`, `root`, `respectReducedMotion`. Elements accept `data-ca-delay` and `data-ca-duration`.
+
+## Rebuild on scroll
+
+Plays a Swarm-style build for elements as they scroll into view: a pair of coloured cursors draws an outline around the element, a `W × H` badge appears, and then the element is revealed. With `once: false` the element hides again when it leaves the viewport and rebuilds the next time it appears.
+
+```javascript
+CursAnimation.rebuild({
+  selector: ".reveal",
+  threshold: 0.1,
+  duration: 700,
+  agents: 2,
+  revealClass: "visible"
+});
+```
+
+The class in `revealClass` is added when the build finishes and removed when the element leaves, so pair the selector with a CSS class that hides the element by default. Options: `selector`, `once`, `threshold`, `duration`, `agents` (1–4), `revealClass`, `rootMargin`, `respectReducedMotion`.
 
 ## Browser behaviour
 
