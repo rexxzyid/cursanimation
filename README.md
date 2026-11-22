@@ -2,6 +2,8 @@
 
 Dependency-free custom cursor and scroll-rebuild animation library.
 
+Full documentation: https://rexxzyid.github.io/cursanimation/
+
 ## Install
 
 CDN:
