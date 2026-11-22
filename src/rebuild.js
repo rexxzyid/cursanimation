@@ -3,18 +3,23 @@ import { createElement } from "./dom.js";
 import { SWARM_COLORS, cursorShapeSVG, CURSOR_HOTSPOTS } from "./swarm.js";
 
 const SVGNS = "http://www.w3.org/2000/svg";
+const MEDIA = "img,svg,video,canvas,picture,iframe";
 
 export const REBUILD_DEFAULTS = {
   selector: "[data-ca-rebuild]",
   once: false,
   threshold: 0.12,
-  duration: 640,
+  duration: 520,
   agents: 2,
   color: "#0d99ff",
   colors: null,
   label: true,
   stagger: 90,
   maxConcurrent: 2,
+  typeText: true,
+  charDelay: 16,
+  maxTypeDuration: 1600,
+  pen: true,
   revealClass: "ca-built",
   rootMargin: "0px",
   respectReducedMotion: true,
@@ -43,13 +48,30 @@ function resolveOptions(options) {
   }
   config.duration = Math.max(120, Number(config.duration) || REBUILD_DEFAULTS.duration);
   config.stagger = Math.max(0, Number(config.stagger) || 0);
+  config.charDelay = Math.max(4, Number(config.charDelay) || REBUILD_DEFAULTS.charDelay);
+  config.maxTypeDuration = Math.max(200, Number(config.maxTypeDuration) || REBUILD_DEFAULTS.maxTypeDuration);
   config.agents = Math.min(3, Math.max(1, Math.round(Number(config.agents) || 1)));
   config.maxConcurrent = Math.max(1, Math.round(Number(config.maxConcurrent) || 1));
   return config;
 }
 
-const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+function collectText(root, selector, out) {
+  for (let child = root.firstChild; child; child = child.nextSibling) {
+    if (child.nodeType === 3) {
+      if (child.nodeValue && child.nodeValue.trim()) out.push({ node: child, text: child.nodeValue });
+    } else if (child.nodeType === 1) {
+      const tag = child.tagName.toLowerCase();
+      if (tag === "script" || tag === "style" || tag === "noscript" || tag === "svg") continue;
+      if (child.classList.contains("ca-typing-caret")) continue;
+      if (child !== root && typeof child.matches === "function" && child.matches(selector)) continue;
+      collectText(child, selector, out);
+    }
+  }
+  return out;
+}
 
 export class Rebuild {
   constructor(options) {
@@ -123,8 +145,7 @@ export class Rebuild {
 
   pump() {
     while (this.queue.length > 0 && this.builds.size < this.config.maxConcurrent) {
-      const job = this.queue.shift();
-      this.start(job.element);
+      this.start(this.queue.shift().element);
     }
   }
 
@@ -138,17 +159,30 @@ export class Rebuild {
       this.finish(element);
       return;
     }
+    const color = this.config.color;
     const build = {
       element,
       rect,
+      color,
+      phase: "box",
       start: Math.max(now(), this.lastStart + this.config.stagger),
-      added: false,
+      phaseStart: 0,
+      typeDuration: 0,
+      charIndex: 0,
+      textNodes: this.config.typeText ? collectText(element, this.config.selector, []) : [],
+      media: this.collectMedia(element),
+      caret: null,
       cursors: [],
       rectEl: null,
       label: null,
+      penLine: null,
+      penCursor: null,
+      finished: false,
     };
+    build.typeDuration = clamp(build.textNodes.reduce((sum, entry) => sum + entry.text.length, 0) * this.config.charDelay, 260, this.config.maxTypeDuration);
     this.lastStart = build.start;
-    const color = this.config.color;
+    for (const entry of build.textNodes) entry.node.nodeValue = "";
+    for (const media of build.media) media.classList.add("ca-build-media");
     const rectEl = document.createElementNS(SVGNS, "rect");
     rectEl.setAttribute("rx", "4");
     rectEl.style.fill = color;
@@ -160,9 +194,7 @@ export class Rebuild {
     rectEl.setAttribute("height", "0");
     this.svg.appendChild(rectEl);
     build.rectEl = rectEl;
-    for (let index = 0; index < this.config.agents; index++) {
-      build.cursors.push(this.makeCursor(rect, index));
-    }
+    for (let index = 0; index < this.config.agents; index++) build.cursors.push(this.makeCursor(rect, index));
     if (this.config.label) {
       const label = createElement("div", "ca-rebuild-label", this.layer);
       label.textContent = `${Math.round(rect.width)} × ${Math.round(rect.height)}`;
@@ -174,6 +206,17 @@ export class Rebuild {
     }
     this.builds.set(element, build);
     this.wake();
+  }
+
+  collectMedia(element) {
+    const list = element.querySelectorAll(MEDIA);
+    const media = [];
+    for (let index = 0; index < list.length; index++) {
+      const item = list[index];
+      if (typeof item.closest === "function" && item.closest(this.config.selector) !== element) continue;
+      media.push(item);
+    }
+    return media;
   }
 
   makeCursor(rect, index) {
@@ -200,65 +243,176 @@ export class Rebuild {
     };
   }
 
+  ensureCaret(build) {
+    if (build.caret) return;
+    build.caret = createElement("span", "ca-typing-caret");
+  }
+
+  type(build, progress) {
+    this.ensureCaret(build);
+    const total = build.textNodes.reduce((sum, entry) => sum + entry.text.length, 0);
+    build.charIndex = Math.min(total, Math.round(total * progress));
+    let remaining = build.charIndex;
+    let last = null;
+    for (const entry of build.textNodes) {
+      if (remaining <= 0) {
+        entry.node.nodeValue = "";
+        continue;
+      }
+      const take = Math.min(entry.text.length, remaining);
+      entry.node.nodeValue = entry.text.slice(0, take);
+      remaining -= take;
+      if (take > 0) last = entry.node;
+    }
+    if (last && last.parentNode) last.parentNode.insertBefore(build.caret, last.nextSibling);
+  }
+
+  revealMedia(build) {
+    for (const media of build.media) media.classList.remove("ca-build-media");
+  }
+
+  pen(build, progress) {
+    if (!build.penTarget) {
+      let best = null;
+      let area = 0;
+      for (const item of build.media) {
+        const box = item.getBoundingClientRect();
+        const next = box.width * box.height;
+        if (box.width > 4 && box.height > 4 && next > area) {
+          best = item;
+          area = next;
+        }
+      }
+      if (!best) return false;
+      build.penTarget = best;
+    }
+    const target = build.penTarget;
+    if (!build.penLine) {
+      const box = target.getBoundingClientRect();
+      const line = document.createElementNS(SVGNS, "line");
+      line.style.stroke = build.color;
+      line.setAttribute("stroke-width", "1.5");
+      line.setAttribute("x1", String(box.left));
+      line.setAttribute("y1", String(box.top));
+      line.setAttribute("x2", String(box.right));
+      line.setAttribute("y2", String(box.bottom));
+      const length = Math.hypot(box.width, box.height);
+      line.setAttribute("stroke-dasharray", String(length));
+      line.setAttribute("stroke-dashoffset", String(length));
+      this.svg.appendChild(line);
+      build.penLine = line;
+      const color = this.palette[(Math.random() * this.palette.length) | 0];
+      const cursor = createElement("div", "ca-rebuild-cursor", this.layer);
+      const svg = document.createElementNS(SVGNS, "svg");
+      svg.setAttribute("width", "28");
+      svg.setAttribute("height", "28");
+      svg.setAttribute("viewBox", "0 0 28 28");
+      svg.innerHTML = cursorShapeSVG("pen", color);
+      svg.style.transform = `translate(${-CURSOR_HOTSPOTS.pen[0]}px,${-CURSOR_HOTSPOTS.pen[1]}px)`;
+      cursor.appendChild(svg);
+      build.penCursor = cursor;
+      build.penBox = box;
+      build.penLength = length;
+    }
+    const x = build.penBox.left + (build.penBox.right - build.penBox.left) * progress;
+    const y = build.penBox.top + (build.penBox.bottom - build.penBox.top) * progress;
+    build.penCursor.style.transform = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`;
+    build.penLine.setAttribute("stroke-dashoffset", String(build.penLength * (1 - progress)));
+    return true;
+  }
+
   tick() {
     this.frame = 0;
     const t = now();
     let active = false;
     for (const [element, build] of this.builds) {
-      if (build.added) continue;
-      const progress = Math.min(1, Math.max(0, (t - build.start) / this.config.duration));
-      const eased = easeInOut(progress);
-      const rect = build.rect;
-      const growX = rect.left + rect.width * eased;
-      const growY = rect.top + rect.height * eased;
-      build.rectEl.setAttribute("width", String(Math.max(0, growX - rect.left)));
-      build.rectEl.setAttribute("height", String(Math.max(0, growY - rect.top)));
-      build.rectEl.setAttribute("fill-opacity", String(0.06 * eased));
-      const lead = build.cursors[0];
-      if (lead) {
-        lead.element.style.transform = `translate3d(${Math.round(growX)}px,${Math.round(growY)}px,0)`;
+      if (build.finished) continue;
+      if (build.phase === "box") {
+        const progress = clamp((t - build.start) / this.config.duration, 0, 1);
+        const eased = easeInOut(progress);
+        const rect = build.rect;
+        const growX = rect.left + rect.width * eased;
+        const growY = rect.top + rect.height * eased;
+        build.rectEl.setAttribute("width", String(Math.max(0, growX - rect.left)));
+        build.rectEl.setAttribute("height", String(Math.max(0, growY - rect.top)));
+        build.rectEl.setAttribute("fill-opacity", String(0.06 * eased));
+        const lead = build.cursors[0];
+        if (lead) lead.element.style.transform = `translate3d(${Math.round(growX)}px,${Math.round(growY)}px,0)`;
+        for (let index = 1; index < build.cursors.length; index++) {
+          const cursor = build.cursors[index];
+          const x = cursor.fromX + (cursor.toX - cursor.fromX) * eased;
+          const y = cursor.fromY + (cursor.toY - cursor.fromY) * eased;
+          cursor.element.style.transform = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`;
+        }
+        if (build.label) build.label.style.opacity = String(eased);
+        if (progress >= 1) {
+          element.classList.add(this.config.revealClass);
+          if (build.textNodes.length > 0) {
+            build.phase = "type";
+            build.phaseStart = t;
+          } else {
+            build.phase = this.config.pen && build.media.length > 0 ? "pen" : "exit";
+            build.phaseStart = t;
+          }
+        }
+        active = true;
+      } else if (build.phase === "type") {
+        const progress = clamp((t - build.phaseStart) / build.typeDuration, 0, 1);
+        this.type(build, progress);
+        if (progress >= 1) {
+          if (build.caret) {
+            build.caret.remove();
+            build.caret = null;
+          }
+          build.phase = this.config.pen && build.media.length > 0 ? "pen" : "exit";
+          build.phaseStart = t;
+        }
+        active = true;
+      } else if (build.phase === "pen") {
+        const progress = clamp((t - build.phaseStart) / 320, 0, 1);
+        const drew = this.pen(build, progress);
+        if (!drew) {
+          this.revealMedia(build);
+          build.phase = "exit";
+          build.phaseStart = t;
+        } else if (progress >= 1) {
+          this.revealMedia(build);
+          if (build.penCursor) build.penCursor.style.opacity = "0";
+          build.phase = "exit";
+          build.phaseStart = t;
+        }
+        active = true;
+      } else if (build.phase === "exit") {
+        const progress = clamp((t - build.phaseStart) / 260, 0, 1);
+        for (const cursor of build.cursors) {
+          const x = cursor.toX + (cursor.outX - cursor.toX) * progress;
+          const y = cursor.toY + (cursor.outY - cursor.toY) * progress;
+          cursor.element.style.transform = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`;
+          cursor.element.style.opacity = String(1 - progress);
+        }
+        build.rectEl.setAttribute("fill-opacity", String(0.06 * (1 - progress)));
+        build.rectEl.setAttribute("stroke-opacity", String(1 - progress));
+        if (build.penLine) build.penLine.setAttribute("stroke-opacity", String(1 - progress));
+        if (build.label) build.label.style.opacity = String(1 - progress);
+        if (progress >= 1) {
+          build.finished = true;
+          this.clearBuild(build);
+        }
+        active = true;
       }
-      for (let index = 1; index < build.cursors.length; index++) {
-        const cursor = build.cursors[index];
-        const x = cursor.fromX + (cursor.toX - cursor.fromX) * eased;
-        const y = cursor.fromY + (cursor.toY - cursor.fromY) * eased;
-        cursor.element.style.transform = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`;
-      }
-      if (build.label) build.label.style.opacity = String(eased);
-      if (progress >= 1 && !build.added) {
-        build.added = true;
-        element.classList.add(this.config.revealClass);
-        this.scheduleExit(build);
-      }
-      active = true;
     }
     if (active) this.wake();
   }
 
-  scheduleExit(build) {
-    const start = now();
-    const step = () => {
-      if (!this.builds.has(build.element)) return;
-      const p = Math.min(1, (now() - start) / 260);
-      for (const cursor of build.cursors) {
-        const x = cursor.toX + (cursor.outX - cursor.toX) * p;
-        const y = cursor.toY + (cursor.outY - cursor.toY) * p;
-        cursor.element.style.transform = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`;
-        cursor.element.style.opacity = String(1 - p);
-      }
-      build.rectEl.setAttribute("fill-opacity", String(0.06 * (1 - p)));
-      build.rectEl.setAttribute("stroke-opacity", String(1 - p));
-      if (build.label) build.label.style.opacity = String(1 - p);
-      if (p < 1) requestFrame(step);
-      else this.clearBuild(build);
-    };
-    requestFrame(step);
-  }
-
   clearBuild(build) {
     for (const cursor of build.cursors) cursor.element.remove();
+    if (build.caret) build.caret.remove();
     if (build.label) build.label.remove();
     if (build.rectEl) build.rectEl.remove();
+    if (build.penLine) build.penLine.remove();
+    if (build.penCursor) build.penCursor.remove();
+    for (const entry of build.textNodes) entry.node.nodeValue = entry.text;
+    this.revealMedia(build);
     this.builds.delete(build.element);
     this.pump();
   }

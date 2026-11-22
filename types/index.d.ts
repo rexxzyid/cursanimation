@@ -153,6 +153,10 @@ export interface RebuildOptions {
   label?: boolean;
   stagger?: number;
   maxConcurrent?: number;
+  typeText?: boolean;
+  charDelay?: number;
+  maxTypeDuration?: number;
+  pen?: boolean;
   revealClass?: string;
   rootMargin?: string;
   respectReducedMotion?: boolean;

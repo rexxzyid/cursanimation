@@ -135,24 +135,28 @@ Options: `selector`, `once`, `threshold` (number or array), `animation`, `durati
 
 ## Rebuild on scroll
 
-Plays a Swarm-style build for elements as they scroll into view: a pair of coloured cursors draws an outline around the element, a `W × H` badge appears, and then the element is revealed. With `once: false` the element hides again when it leaves the viewport and rebuilds the next time it appears.
+Plays a Swarm-style build for elements as they scroll into view: coloured cursors draw an outline around the element, its text is typed in character by character with a blinking caret, images/media get a pen-tool stroke and fade in, then the build is cleaned up. With `once: false` the element hides again when it leaves the viewport and rebuilds the next time it appears.
 
 ```javascript
 CursAnimation.rebuild({
   selector: ".reveal",
   threshold: 0.1,
-  duration: 640,
+  duration: 520,
   agents: 2,
   color: "#111111",
   colors: ["#111111", "#ffdc58", "#ff8a00"],
   label: true,
   stagger: 90,
   maxConcurrent: 2,
+  typeText: true,
+  charDelay: 16,
+  maxTypeDuration: 1600,
+  pen: true,
   revealClass: "visible"
 });
 ```
 
-The class in `revealClass` is added when the build finishes and removed when the element leaves, so pair the selector with a CSS class that hides the element by default. Options: `selector`, `once`, `threshold`, `duration`, `agents` (1–3), `color` (outline/label), `colors` (cursor palette), `label`, `stagger` (ms between starts), `maxConcurrent`, `revealClass`, `rootMargin`, `respectReducedMotion`.
+The class in `revealClass` is added when the build starts and removed when the element leaves, so pair the selector with a CSS class that hides the element by default. Options: `selector`, `once`, `threshold`, `duration` (outline draw), `agents` (1–3), `color` (outline/label), `colors` (cursor palette), `label`, `stagger` (ms between starts), `maxConcurrent`, `typeText`, `charDelay`, `maxTypeDuration`, `pen`, `revealClass`, `rootMargin`, `respectReducedMotion`.
 
 ## Browser behaviour
 

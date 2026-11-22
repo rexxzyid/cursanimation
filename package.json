@@ -1,6 +1,6 @@
 {
   "name": "@rexxzyid/cursanimation",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Dependency-free custom cursor animation library: cursor styles, trails, particles, magnetic hover, click effects and scroll reveal.",
   "author": "RexxHayanasi",
   "license": "MIT",

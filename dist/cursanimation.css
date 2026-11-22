@@ -1,4 +1,4 @@
-/*! CursAnimation v1.3.0 | MIT | RexxHayanasi | https://cursanimation.rexxhayanasi.cv */
+/*! CursAnimation v1.4.0 | MIT | RexxHayanasi | https://cursanimation.rexxhayanasi.cv */
 :root {
   --ca-color: #7c5cff;
   --ca-color2: #22d3ee;
@@ -377,4 +377,23 @@ html.ca-hide-native * {
     sans-serif;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+.ca-typing-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 1px;
+  margin-right: -2px;
+  vertical-align: text-bottom;
+  background: currentColor;
+  animation: ca-caret-blink 1s steps(1) infinite;
+}
+.ca-build-media {
+  opacity: 0 !important;
+  transition: opacity 0.35s ease;
+}
+@keyframes ca-caret-blink {
+  50% {
+    opacity: 0;
+  }
 }
