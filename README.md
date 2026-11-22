@@ -143,12 +143,16 @@ CursAnimation.rebuild({
   threshold: 0.1,
   duration: 520,
   agents: 2,
-  color: "#111111",
+  color: "auto",
+  autoDark: "#111111",
+  autoLight: "#ffdc58",
   colors: ["#111111", "#ffdc58", "#ff8a00"],
   label: true,
+  labelMinArea: 7000,
   stagger: 90,
   maxConcurrent: 2,
   typeText: true,
+  typeSelector: "h1,h2,h3,p,li,blockquote",
   charDelay: 16,
   maxTypeDuration: 1600,
   pen: true,
@@ -156,7 +160,7 @@ CursAnimation.rebuild({
 });
 ```
 
-The class in `revealClass` is added when the build starts and removed when the element leaves, so pair the selector with a CSS class that hides the element by default. Options: `selector`, `once`, `threshold`, `duration` (outline draw), `agents` (1–3), `color` (outline/label), `colors` (cursor palette), `label`, `stagger` (ms between starts), `maxConcurrent`, `typeText`, `charDelay`, `maxTypeDuration`, `pen`, `revealClass`, `rootMargin`, `respectReducedMotion`.
+The class in `revealClass` is added when the build starts and removed when the element leaves, so pair the selector with a CSS class that hides the element by default. Options: `selector`, `once`, `threshold`, `duration` (outline draw), `agents` (1–3), `color` (outline/label, or `"auto"` for contrast against the element background), `autoDark` / `autoLight` (used by `"auto"`), `colors` (cursor palette), `label`, `labelMinArea`, `stagger` (ms between starts), `maxConcurrent`, `typeText`, `typeSelector` (only type text inside matching elements), `charDelay`, `maxTypeDuration`, `pen`, `revealClass`, `rootMargin`, `respectReducedMotion`.
 
 ## Browser behaviour
 

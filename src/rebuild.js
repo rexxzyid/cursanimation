@@ -12,11 +12,15 @@ export const REBUILD_DEFAULTS = {
   duration: 520,
   agents: 2,
   color: "#0d99ff",
+  autoDark: "#111111",
+  autoLight: "#ffdc58",
   colors: null,
   label: true,
+  labelMinArea: 7000,
   stagger: 90,
   maxConcurrent: 2,
   typeText: true,
+  typeSelector: null,
   charDelay: 16,
   maxTypeDuration: 1600,
   pen: true,
@@ -41,11 +45,18 @@ function resolveOptions(options) {
     throw new RangeError("Rebuild option threshold must be a number between 0 and 1");
   }
   if (typeof config.color !== "string" || config.color.length === 0) {
-    throw new TypeError("Rebuild option color must be a CSS colour string");
+    throw new TypeError("Rebuild option color must be a CSS colour string or \"auto\"");
+  }
+  if (typeof config.autoDark !== "string" || typeof config.autoLight !== "string") {
+    throw new TypeError("Rebuild options autoDark and autoLight must be CSS colour strings");
+  }
+  if (config.typeSelector !== null && (typeof config.typeSelector !== "string" || config.typeSelector.length === 0)) {
+    throw new TypeError("Rebuild option typeSelector must be null or a non-empty string");
   }
   if (config.colors !== null && (!Array.isArray(config.colors) || config.colors.length === 0)) {
     throw new TypeError("Rebuild option colors must be a non-empty array");
   }
+  config.labelMinArea = Math.max(0, Number(config.labelMinArea) || 0);
   config.duration = Math.max(120, Number(config.duration) || REBUILD_DEFAULTS.duration);
   config.stagger = Math.max(0, Number(config.stagger) || 0);
   config.charDelay = Math.max(4, Number(config.charDelay) || REBUILD_DEFAULTS.charDelay);
@@ -58,16 +69,46 @@ function resolveOptions(options) {
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-function collectText(root, selector, out) {
+function parseColor(value) {
+  const match = value && value.match(/rgba?\(([^)]+)\)/);
+  if (!match) return null;
+  const parts = match[1].split(/[\s,/]+/).filter(Boolean).map(Number);
+  if (parts.length < 3 || parts.some((n) => Number.isNaN(n))) return null;
+  return { r: parts[0], g: parts[1], b: parts[2], a: parts.length > 3 ? parts[3] : 1 };
+}
+
+function backgroundLuminance(element) {
+  const view = element.ownerDocument && element.ownerDocument.defaultView;
+  if (!view || typeof view.getComputedStyle !== "function") return 1;
+  let node = element;
+  while (node && node.nodeType === 1) {
+    let value = null;
+    try {
+      value = view.getComputedStyle(node).backgroundColor;
+    } catch (error) {
+      value = null;
+    }
+    const parsed = parseColor(value);
+    if (parsed && parsed.a > 0.1) {
+      return (0.2126 * parsed.r + 0.7152 * parsed.g + 0.0722 * parsed.b) / 255;
+    }
+    node = node.parentElement;
+  }
+  return 1;
+}
+
+function collectText(root, selector, typeSelector, out, active) {
   for (let child = root.firstChild; child; child = child.nextSibling) {
     if (child.nodeType === 3) {
-      if (child.nodeValue && child.nodeValue.trim()) out.push({ node: child, text: child.nodeValue });
+      if (active && child.nodeValue && child.nodeValue.trim()) out.push({ node: child, text: child.nodeValue });
     } else if (child.nodeType === 1) {
       const tag = child.tagName.toLowerCase();
       if (tag === "script" || tag === "style" || tag === "noscript" || tag === "svg") continue;
       if (child.classList.contains("ca-typing-caret")) continue;
       if (child !== root && typeof child.matches === "function" && child.matches(selector)) continue;
-      collectText(child, selector, out);
+      let next = active;
+      if (typeSelector && typeof child.matches === "function" && child.matches(typeSelector)) next = true;
+      collectText(child, selector, typeSelector, out, next);
     }
   }
   return out;
@@ -159,7 +200,11 @@ export class Rebuild {
       this.finish(element);
       return;
     }
-    const color = this.config.color;
+    const color = this.config.color === "auto"
+      ? backgroundLuminance(element) < 0.45
+        ? this.config.autoLight
+        : this.config.autoDark
+      : this.config.color;
     const build = {
       element,
       rect,
@@ -169,7 +214,9 @@ export class Rebuild {
       phaseStart: 0,
       typeDuration: 0,
       charIndex: 0,
-      textNodes: this.config.typeText ? collectText(element, this.config.selector, []) : [],
+      textNodes: this.config.typeText
+        ? collectText(element, this.config.selector, this.config.typeSelector, [], this.config.typeSelector === null)
+        : [],
       media: this.collectMedia(element),
       caret: null,
       cursors: [],
@@ -195,7 +242,7 @@ export class Rebuild {
     this.svg.appendChild(rectEl);
     build.rectEl = rectEl;
     for (let index = 0; index < this.config.agents; index++) build.cursors.push(this.makeCursor(rect, index));
-    if (this.config.label) {
+    if (this.config.label && rect.width * rect.height >= this.config.labelMinArea) {
       const label = createElement("div", "ca-rebuild-label", this.layer);
       label.textContent = `${Math.round(rect.width)} × ${Math.round(rect.height)}`;
       label.style.background = color;

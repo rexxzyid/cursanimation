@@ -149,11 +149,15 @@ export interface RebuildOptions {
   duration?: number;
   agents?: number;
   color?: string;
+  autoDark?: string;
+  autoLight?: string;
   colors?: string[] | null;
   label?: boolean;
+  labelMinArea?: number;
   stagger?: number;
   maxConcurrent?: number;
   typeText?: boolean;
+  typeSelector?: string | null;
   charDelay?: number;
   maxTypeDuration?: number;
   pen?: boolean;
