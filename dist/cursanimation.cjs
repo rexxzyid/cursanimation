@@ -1,4 +1,4 @@
-/*! CursAnimation v1.5.3 | MIT | RexxHayanasi | https://cursanimation.rexxhayanasi.cv */
+/*! CursAnimation v1.5.4 | MIT | RexxHayanasi | https://cursanimation.rexxhayanasi.cv */
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -1962,6 +1962,9 @@ var Rebuild = class {
     if (!this.frame) this.frame = requestFrame(() => this.tick());
   }
   sizeCanvas() {
+    const time = now();
+    if (this.canvasAt && time - this.canvasAt < 300) return;
+    this.canvasAt = time;
     const width = Math.max(document.documentElement.scrollWidth, window.innerWidth || 0);
     const height = Math.max(document.documentElement.scrollHeight, window.innerHeight || 0);
     this.svg.setAttribute("width", String(width));
@@ -1988,7 +1991,7 @@ var Rebuild = class {
 };
 
 // src/version.js
-var version = "1.5.3";
+var version = "1.5.4";
 
 // src/index.js
 var engine = new Engine();

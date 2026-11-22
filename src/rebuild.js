@@ -527,6 +527,9 @@ export class Rebuild {
   }
 
   sizeCanvas() {
+    const time = now();
+    if (this.canvasAt && time - this.canvasAt < 300) return;
+    this.canvasAt = time;
     const width = Math.max(document.documentElement.scrollWidth, window.innerWidth || 0);
     const height = Math.max(document.documentElement.scrollHeight, window.innerHeight || 0);
     this.svg.setAttribute("width", String(width));

@@ -1,25 +1,14 @@
 # CursAnimation
 
-Dependency-free custom cursor animation library by [RexxHayanasi](https://cursanimation.rexxhayanasi.cv).
-
-Cursor styles, smooth / delayed / elastic movement, magnetic hover, trails, particles, click ripples, drag feedback and a repeatable scroll-reveal system. Plain CSS and JavaScript, no framework required.
+Dependency-free custom cursor and scroll-rebuild animation library.
 
 ## Install
 
-CDN or local files:
+CDN:
 
 ```html
-<link rel="stylesheet" href="cursanimation.min.css">
-<script src="cursanimation.min.js"></script>
-<script>
-  CursAnimation.init({
-    cursor: "default",
-    trail: true,
-    particles: true,
-    hoverEffects: true,
-    clickEffects: true
-  });
-</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rexxzyid/cursanimation@v1.5.4/dist/cursanimation.min.css">
+<script src="https://cdn.jsdelivr.net/gh/rexxzyid/cursanimation@v1.5.4/dist/cursanimation.min.js"></script>
 ```
 
 npm:
@@ -31,166 +20,63 @@ npm install @rexxzyid/cursanimation
 ```javascript
 import CursAnimation from "@rexxzyid/cursanimation";
 import "@rexxzyid/cursanimation/css";
-
-CursAnimation.init({ cursor: "ring", movement: "elastic", magnetic: true });
 ```
 
-The stylesheet is required. Without it the overlay has no styling.
-
-## API
-
-| Method | Description |
-| --- | --- |
-| `init(options?)` | Mounts the cursor. Calling it again replaces the previous instance. |
-| `destroy()` | Removes the overlay, listeners, observers and animation loop. |
-| `enable()` / `disable()` | Re-attaches or detaches listeners without destroying the instance. |
-| `setCursor(type)` | Shortcut for `setOptions({ cursor: type })`. |
-| `setOptions(options)` | Merges options into the running instance. Nested objects are merged. |
-| `getOptions()` | Returns a copy of the resolved options, or `null` before `init`. |
-| `reveal(options?)` | Starts a scroll-reveal instance. Returns `{ refresh(), destroy() }`. |
-| `rebuild(options?)` | Starts a Swarm-style rebuild-on-scroll instance. Returns `{ refresh(), destroy() }`. |
-| `refresh()` | Re-reads the DOM for hover targets, magnetic targets and reveal elements. Call it after rendering new content. |
-| `capabilities()` | Reports detected browser features. |
-| `version` | Library version string. |
-
-`setOptions`, `setCursor`, `enable` and `disable` throw if `init` has not been called. All methods are safe no-ops during server-side rendering.
-
-Invalid or unknown options throw `RangeError` or `TypeError` instead of being ignored.
-
-## Options
-
-| Option | Default | Values |
-| --- | --- | --- |
-| `cursor` | `"default"` | `default`, `circle`, `dot`, `ring`, `crosshair`, `minimal`, `image` |
-| `imageUrl` | `""` | Required when `cursor` is `image` |
-| `imageSize` | `32` | Pixels |
-| `imageHotspot` | `[0, 0]` | Pixel offset of the click point inside the image |
-| `color` / `color2` | `#7c5cff` / `#22d3ee` | Any CSS colour |
-| `size` | `32` | Body diameter in pixels |
-| `movement` | `"smooth"` | `instant`, `smooth`, `delayed`, `elastic` |
-| `speed` | `0.25` | `0.02` to `1`, follow factor per frame |
-| `elastic` | `{ stiffness: 0.12, damping: 0.78 }` | Spring parameters for `elastic` |
-| `magnetic` | `{ enabled: false, radius: 90, strength: 0.4 }` | Pulls toward nearby links and buttons |
-| `swarm` | `{ enabled: false, count: 18, radius: 150, size: 26, speed: 1, avoid: 52, hideCursor: true }` | A flock of coloured multiplayer cursors that orbit and trail the pointer |
-| `glow` / `neon` / `motionBlur` | `false` | Visual effects |
-| `trail` | `{ enabled: false, length: 14, style: "dots", size: 0.6 }` | `style`: `dots`, `gradient`, `neon` |
-| `particles` | `{ enabled: false, density: 4, size: 6, lifetime: 800, gravity: 0.04, shape: "dot", max: 120 }` | `shape`: `dot`, `sparkle`, `mixed` |
-| `hoverEffects` / `hoverScale` | `true` / `1.8` | Link, button and text transformations |
-| `clickEffects` | `{ enabled: true, ripple: true, particles: true, count: 12 }` | Click feedback |
-| `dragEffects` | `true` | Drag state after 4px of pressed movement |
-| `hideNativeCursor` | `true` | Hidden only while a mouse is active |
-| `touch` | `"off"` | `off` or `tap` (tap ripples on touch devices) |
-| `respectReducedMotion` | `true` | Disables trail, particles, ripples, blur and easing |
-| `selectors` | see source | `link`, `button`, `text`, `ignore` |
-
-Passing `true` for `trail`, `particles`, `clickEffects`, `magnetic` or `swarm` enables them with defaults. Passing an object enables them and overrides the given keys.
-
-`particles` controls ambient trail particles and the shared particle look. Click particles are controlled by `clickEffects.particles`.
-
-Per-element control: `data-ca-hover="link|button|text|none"` forces a hover state, `data-ca-ignore` opts an element out, `data-ca-magnetic` makes any element a magnetic target.
-
-## Swarm
-
-Turns the pointer into a flock of coloured multiplayer-style cursors that orbit, swirl and avoid the pointer, like the cursors on [Swarm](https://califa.github.io/swarm-site/).
+## Cursor
 
 ```javascript
 CursAnimation.init({
   cursor: "ring",
-  swarm: {
-    enabled: true,
-    count: 24,
-    radius: 160,
-    avoid: 56,
-    hideCursor: true
-  }
+  color: "#f3f0e8",
+  color2: "#ffd84d",
+  size: 32,
+  movement: "elastic",
+  magnetic: { enabled: true, radius: 90, strength: 0.35 },
+  swarm: { enabled: true, count: 12, radius: 150 },
+  hoverEffects: true,
+  clickEffects: { enabled: true }
 });
 ```
 
-`count` is the number of cursors (2–64), `radius` the orbit distance, `speed` the overall animation speed, `avoid` the empty ring kept around the pointer, and `hideCursor` hides the single custom cursor while the swarm is active. The swarm is disabled when reduced motion is preferred.
-
-## Scroll reveal
-
-```javascript
-CursAnimation.reveal({
-  selector: "[data-ca-reveal]",
-  once: false,
-  threshold: 0.12,
-  animation: "fade-up"
-});
-```
-
-```html
-<h2 data-ca-reveal="blur-in">Title</h2>
-<ul data-ca-stagger="80">
-  <li data-ca-reveal>One</li>
-  <li data-ca-reveal>Two</li>
-</ul>
-```
-
-Animations: `fade`, `fade-up`, `fade-down`, `fade-left` (enters from the left), `fade-right` (enters from the right), `zoom-in`, `scale-up`, `blur-in`.
-
-With `once: false` elements hide when they leave the viewport and play again on every return. Elements without `IntersectionObserver` support are shown immediately. `prefers-reduced-motion` shows everything without animation.
-
-Options: `selector`, `once`, `threshold` (number or array), `animation`, `duration` (ms), `delay` (ms), `stagger` (ms), `distance` (px), `rootMargin`, `root`, `respectReducedMotion`. Elements accept `data-ca-delay` and `data-ca-duration`.
+Main options: `cursor`, `color`, `color2`, `size`, `movement`, `magnetic`, `swarm`, `trail`, `particles`, `hoverEffects`, `clickEffects`, `touch`, `respectReducedMotion`.
 
 ## Rebuild on scroll
 
-Plays a Swarm-style build for elements as they scroll into view: coloured cursors draw an outline around the element, its text is typed in character by character with a blinking caret, images/media get a pen-tool stroke and fade in, then the build is cleaned up. With `once: false` the element hides again when it leaves the viewport and rebuilds the next time it appears.
+Hides matching elements, draws an outline, types their text, traces media with a pen cursor, then reveals them. Remove the reveal class when the element leaves the viewport to replay it.
+
+```html
+<section class="reveal">...</section>
+<style>.reveal { opacity: 0; } .reveal.visible { opacity: 1; }</style>
+```
 
 ```javascript
 CursAnimation.rebuild({
   selector: ".reveal",
-  threshold: 0.1,
-  duration: 520,
+  revealClass: "visible",
+  threshold: 0.14,
+  duration: 440,
   agents: 2,
   color: "auto",
   autoDark: "#111111",
-  autoLight: "#ffdc58",
-  colors: ["#111111", "#ffdc58", "#ff8a00"],
-  label: true,
-  labelMinArea: 7000,
-  stagger: 90,
-  maxConcurrent: 2,
+  autoLight: "#f3f0e8",
   typeText: true,
-  typeSelector: "h1,h2,h3,p,li,blockquote",
-  charDelay: 16,
-  maxTypeDuration: 1600,
+  typeSelector: "h1,h2,h3,p",
+  charDelay: 9,
+  maxTypeDuration: 980,
   pen: true,
-  revealClass: "visible"
+  stagger: 60,
+  maxConcurrent: 2
 });
 ```
 
-The class in `revealClass` is added when the build starts and removed when the element leaves, so pair the selector with a CSS class that hides the element by default. Options: `selector`, `once`, `threshold`, `duration` (outline draw), `agents` (1–3), `color` (outline/label, or `"auto"` for contrast against the element background), `autoDark` / `autoLight` (used by `"auto"`), `colors` (cursor palette), `label`, `labelMinArea`, `stagger` (ms between starts), `maxConcurrent`, `typeText`, `typeSelector` (only type text inside matching elements), `charDelay`, `maxTypeDuration`, `pen`, `revealClass`, `rootMargin`, `respectReducedMotion`.
+Useful options: `selector`, `revealClass`, `once`, `threshold`, `duration`, `agents`, `color` (`"auto"` or a CSS color), `autoDark`, `autoLight`, `colors`, `label`, `stagger`, `maxConcurrent`, `typeText`, `typeSelector`, `charDelay`, `maxTypeDuration`, `pen`, `rootMargin`.
 
-## Browser behaviour
+## API
 
-The library uses feature detection, not browser sniffing.
+`init`, `destroy`, `enable`, `disable`, `setOptions`, `setCursor`, `getOptions`, `reveal`, `rebuild`, `refresh`, `capabilities`, `version`.
 
-- Pointer Events are used when available, with a mouse and touch fallback.
-- Touch pointers hide the custom cursor and restore the native one. `touch: "tap"` adds tap feedback.
-- Without `matchMedia` reduced motion cannot be detected, so effects stay on.
-- Without `IntersectionObserver` reveal elements are shown immediately.
-- `gradient` trail interpolation uses `color-mix()` when supported and falls back to a CSS gradient otherwise.
-- The overlay is `pointer-events: none` and never blocks interaction.
-- Animation pauses while the tab is hidden and the loop stops when everything has settled.
-
-Automated tests run in jsdom, which verifies logic, lifecycle and fallbacks. They do not replace manual checks in real browsers. Test Chrome, Edge, Firefox, Safari and iOS Safari before relying on specific rendering.
-
-## Development
-
-```bash
-npm install
-npm run build
-npm test
-npm run check:comments
-```
-
-Output in `dist/`: `cursanimation.js`, `cursanimation.min.js` (global `CursAnimation`), `cursanimation.esm.js`, `cursanimation.esm.min.js`, `cursanimation.cjs`, `cursanimation.css`, `cursanimation.min.css`.
-
-## Acknowledgements
-
-CursAnimation was started from a review of [Swarm Rebuild](https://github.com/califa/swarm-site), itself a tribute to the Swarm site by [Joel Califa](https://joelcalifa.com). That project is published without a license, so no code, assets or cursor artwork from it are included here. All code in this repository is original.
+The stylesheet is required. Call `refresh()` after adding new DOM.
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+MIT
