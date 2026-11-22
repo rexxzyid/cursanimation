@@ -1,4 +1,4 @@
-/*! CursAnimation v1.5.1 | MIT | RexxHayanasi | https://cursanimation.rexxhayanasi.cv */
+/*! CursAnimation v1.5.2 | MIT | RexxHayanasi | https://cursanimation.rexxhayanasi.cv */
 
 // src/config.js
 var CURSOR_TYPES = ["default", "circle", "dot", "ring", "crosshair", "minimal", "image"];
@@ -1640,10 +1640,12 @@ var Rebuild = class {
       label: null,
       penRect: null,
       penCursor: null,
-      finished: false
+      finished: false,
+      minHeight: element.style.minHeight
     };
     build.typeDuration = clamp2(build.textNodes.reduce((sum, entry) => sum + entry.text.length, 0) * this.config.charDelay, 260, this.config.maxTypeDuration);
     this.lastStart = build.start;
+    element.style.minHeight = `${Math.round(rect.height)}px`;
     for (const entry of build.textNodes) entry.node.nodeValue = "";
     for (const media of build.media) {
       media.classList.add("ca-build-anim", "ca-build-media");
@@ -1879,6 +1881,7 @@ var Rebuild = class {
     if (build.penRect) build.penRect.remove();
     if (build.penCursor) build.penCursor.remove();
     for (const entry of build.textNodes) entry.node.nodeValue = entry.text;
+    build.element.style.minHeight = build.minHeight;
     for (const media of build.media) media.classList.remove("ca-build-media", "ca-build-anim");
     this.builds.delete(build.element);
     this.pump();
@@ -1921,7 +1924,7 @@ var Rebuild = class {
 };
 
 // src/version.js
-var version = "1.5.1";
+var version = "1.5.2";
 
 // src/index.js
 var engine = new Engine();

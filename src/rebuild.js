@@ -225,9 +225,11 @@ export class Rebuild {
       penRect: null,
       penCursor: null,
       finished: false,
+      minHeight: element.style.minHeight,
     };
     build.typeDuration = clamp(build.textNodes.reduce((sum, entry) => sum + entry.text.length, 0) * this.config.charDelay, 260, this.config.maxTypeDuration);
     this.lastStart = build.start;
+    element.style.minHeight = `${Math.round(rect.height)}px`;
     for (const entry of build.textNodes) entry.node.nodeValue = "";
     for (const media of build.media) {
       media.classList.add("ca-build-anim", "ca-build-media");
@@ -315,7 +317,9 @@ export class Rebuild {
 
   revealMedia(build) {
     for (const media of build.media) media.classList.remove("ca-build-media");
-  }  pointOnRect(box, distance) {
+  }
+
+  pointOnRect(box, distance) {
     const w = box.width;
     const h = box.height;
     const perimeter = 2 * (w + h);
@@ -470,6 +474,7 @@ export class Rebuild {
     if (build.penRect) build.penRect.remove();
     if (build.penCursor) build.penCursor.remove();
     for (const entry of build.textNodes) entry.node.nodeValue = entry.text;
+    build.element.style.minHeight = build.minHeight;
     for (const media of build.media) media.classList.remove("ca-build-media", "ca-build-anim");
     this.builds.delete(build.element);
     this.pump();
