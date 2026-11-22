@@ -1,4 +1,4 @@
-/*! CursAnimation v1.5.0 | MIT | RexxHayanasi | https://cursanimation.rexxhayanasi.cv */
+/*! CursAnimation v1.5.1 | MIT | RexxHayanasi | https://cursanimation.rexxhayanasi.cv */
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -1673,14 +1673,16 @@ var Rebuild = class {
       cursors: [],
       rectEl: null,
       label: null,
-      penLine: null,
+      penRect: null,
       penCursor: null,
       finished: false
     };
     build.typeDuration = clamp2(build.textNodes.reduce((sum, entry) => sum + entry.text.length, 0) * this.config.charDelay, 260, this.config.maxTypeDuration);
     this.lastStart = build.start;
     for (const entry of build.textNodes) entry.node.nodeValue = "";
-    for (const media of build.media) media.classList.add("ca-build-media");
+    for (const media of build.media) {
+      media.classList.add("ca-build-anim", "ca-build-media");
+    }
     const rectEl = document.createElementNS(SVGNS2, "rect");
     rectEl.setAttribute("rx", "4");
     rectEl.style.fill = color;
@@ -1727,15 +1729,12 @@ var Rebuild = class {
     const [hx, hy] = CURSOR_HOTSPOTS[shape];
     svg.style.transform = `translate(${-hx}px,${-hy}px)`;
     element.appendChild(svg);
-    const corner = index % 2 === 0 ? 1 : -1;
     return {
       element,
-      fromX: corner > 0 ? rect.left - 60 : rect.right + 60,
-      fromY: corner > 0 ? rect.top - 50 : rect.bottom + 50,
-      toX: corner > 0 ? rect.right : rect.left,
-      toY: corner > 0 ? rect.bottom : rect.top,
-      outX: corner > 0 ? rect.right + 70 : rect.left - 70,
-      outY: corner > 0 ? rect.bottom + 60 : rect.top - 60
+      toX: rect.right - index * 20,
+      toY: rect.bottom - index * 14,
+      outX: rect.right + 70,
+      outY: rect.bottom + 60
     };
   }
   ensureCaret(build) {
@@ -1763,6 +1762,19 @@ var Rebuild = class {
   revealMedia(build) {
     for (const media of build.media) media.classList.remove("ca-build-media");
   }
+  pointOnRect(box, distance) {
+    const w = box.width;
+    const h = box.height;
+    const perimeter = 2 * (w + h);
+    let d = (distance % perimeter + perimeter) % perimeter;
+    if (d <= w) return { x: box.left + d, y: box.top };
+    d -= w;
+    if (d <= h) return { x: box.right, y: box.top + d };
+    d -= h;
+    if (d <= w) return { x: box.right - d, y: box.bottom };
+    d -= w;
+    return { x: box.left, y: box.bottom - d };
+  }
   pen(build, progress) {
     if (!build.penTarget) {
       let best = null;
@@ -1779,20 +1791,21 @@ var Rebuild = class {
       build.penTarget = best;
     }
     const target = build.penTarget;
-    if (!build.penLine) {
+    if (!build.penRect) {
       const box = target.getBoundingClientRect();
-      const line = document.createElementNS(SVGNS2, "line");
-      line.style.stroke = build.color;
-      line.setAttribute("stroke-width", "1.5");
-      line.setAttribute("x1", String(box.left));
-      line.setAttribute("y1", String(box.top));
-      line.setAttribute("x2", String(box.right));
-      line.setAttribute("y2", String(box.bottom));
-      const length = Math.hypot(box.width, box.height);
-      line.setAttribute("stroke-dasharray", String(length));
-      line.setAttribute("stroke-dashoffset", String(length));
-      this.svg.appendChild(line);
-      build.penLine = line;
+      const perimeter = 2 * (box.width + box.height);
+      const rectEl = document.createElementNS(SVGNS2, "rect");
+      rectEl.style.stroke = build.color;
+      rectEl.style.fill = "none";
+      rectEl.setAttribute("stroke-width", "1.5");
+      rectEl.setAttribute("x", String(box.left));
+      rectEl.setAttribute("y", String(box.top));
+      rectEl.setAttribute("width", String(box.width));
+      rectEl.setAttribute("height", String(box.height));
+      rectEl.setAttribute("stroke-dasharray", String(perimeter));
+      rectEl.setAttribute("stroke-dashoffset", String(perimeter));
+      this.svg.appendChild(rectEl);
+      build.penRect = rectEl;
       const color = this.palette[Math.random() * this.palette.length | 0];
       const cursor = createElement("div", "ca-rebuild-cursor", this.layer);
       const svg = document.createElementNS(SVGNS2, "svg");
@@ -1804,12 +1817,11 @@ var Rebuild = class {
       cursor.appendChild(svg);
       build.penCursor = cursor;
       build.penBox = box;
-      build.penLength = length;
+      build.penPerimeter = perimeter;
     }
-    const x = build.penBox.left + (build.penBox.right - build.penBox.left) * progress;
-    const y = build.penBox.top + (build.penBox.bottom - build.penBox.top) * progress;
-    build.penCursor.style.transform = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`;
-    build.penLine.setAttribute("stroke-dashoffset", String(build.penLength * (1 - progress)));
+    const point = this.pointOnRect(build.penBox, progress * build.penPerimeter);
+    build.penCursor.style.transform = `translate3d(${Math.round(point.x)}px,${Math.round(point.y)}px,0)`;
+    build.penRect.setAttribute("stroke-dashoffset", String(build.penPerimeter * (1 - progress)));
     return true;
   }
   tick() {
@@ -1831,8 +1843,8 @@ var Rebuild = class {
         if (lead) lead.element.style.transform = `translate3d(${Math.round(growX)}px,${Math.round(growY)}px,0)`;
         for (let index = 1; index < build.cursors.length; index++) {
           const cursor = build.cursors[index];
-          const x = cursor.fromX + (cursor.toX - cursor.fromX) * eased;
-          const y = cursor.fromY + (cursor.toY - cursor.fromY) * eased;
+          const x = growX - index * 20;
+          const y = growY - index * 14;
           cursor.element.style.transform = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`;
         }
         if (build.label) build.label.style.opacity = String(eased);
@@ -1874,7 +1886,7 @@ var Rebuild = class {
         }
         active = true;
       } else if (build.phase === "exit") {
-        const progress = clamp2((t - build.phaseStart) / 260, 0, 1);
+        const progress = clamp2((t - build.phaseStart) / 380, 0, 1);
         for (const cursor of build.cursors) {
           const x = cursor.toX + (cursor.outX - cursor.toX) * progress;
           const y = cursor.toY + (cursor.outY - cursor.toY) * progress;
@@ -1883,7 +1895,7 @@ var Rebuild = class {
         }
         build.rectEl.setAttribute("fill-opacity", String(0.06 * (1 - progress)));
         build.rectEl.setAttribute("stroke-opacity", String(1 - progress));
-        if (build.penLine) build.penLine.setAttribute("stroke-opacity", String(1 - progress));
+        if (build.penRect) build.penRect.setAttribute("stroke-opacity", String(1 - progress));
         if (build.label) build.label.style.opacity = String(1 - progress);
         if (progress >= 1) {
           build.finished = true;
@@ -1899,10 +1911,10 @@ var Rebuild = class {
     if (build.caret) build.caret.remove();
     if (build.label) build.label.remove();
     if (build.rectEl) build.rectEl.remove();
-    if (build.penLine) build.penLine.remove();
+    if (build.penRect) build.penRect.remove();
     if (build.penCursor) build.penCursor.remove();
     for (const entry of build.textNodes) entry.node.nodeValue = entry.text;
-    this.revealMedia(build);
+    for (const media of build.media) media.classList.remove("ca-build-media", "ca-build-anim");
     this.builds.delete(build.element);
     this.pump();
   }
@@ -1944,7 +1956,7 @@ var Rebuild = class {
 };
 
 // src/version.js
-var version = "1.5.0";
+var version = "1.5.1";
 
 // src/index.js
 var engine = new Engine();

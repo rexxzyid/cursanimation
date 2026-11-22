@@ -436,9 +436,14 @@ html.ca-hide-native * {
   animation: ca-caret-blink 1s steps(1) infinite;
 }
 
+.ca-build-anim {
+  transition: opacity 0.3s ease, clip-path 0.34s cubic-bezier(0.2, 0.75, 0.2, 1), -webkit-clip-path 0.34s cubic-bezier(0.2, 0.75, 0.2, 1);
+}
+
 .ca-build-media {
   opacity: 0 !important;
-  transition: opacity 0.35s ease;
+  clip-path: inset(0 0 100% 0) !important;
+  -webkit-clip-path: inset(0 0 100% 0) !important;
 }
 
 @keyframes ca-caret-blink {
