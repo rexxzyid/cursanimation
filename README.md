@@ -7,8 +7,8 @@ Dependency-free custom cursor and scroll-rebuild animation library.
 CDN:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rexxzyid/cursanimation@v1.5.4/dist/cursanimation.min.css">
-<script src="https://cdn.jsdelivr.net/gh/rexxzyid/cursanimation@v1.5.4/dist/cursanimation.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rexxzyid/cursanimation@1.5.4/dist/cursanimation.min.css">
+<script src="https://cdn.jsdelivr.net/gh/rexxzyid/cursanimation@1.5.4/dist/cursanimation.min.js"></script>
 ```
 
 npm:
